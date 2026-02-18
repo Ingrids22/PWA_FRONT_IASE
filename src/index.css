@@ -118,3 +118,20 @@ body { margin: 0; background: #0b0d10; color: #e7eaee; }
 .badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
 .status-select { width: 160px; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
 .item { grid-template-columns: 180px 1fr auto; }
+
+/* select tareas status */
+
+.status-select {
+  width: 160px;
+  border: 1px solid #2a2f36;
+  background: #11151a;
+  color: #e7eaee;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.item { grid-template-columns: 180px 1fr auto; } /* espacio para el select */
+
+
+.badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+.status-select { width: 160px; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
+.item { grid-template-columns: 180px 1fr auto; }
