@@ -11,19 +11,22 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <BrowserRouter>
-            <Routes>
-                {/* Rutas Públicas */}
-                <Route path="/" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+    <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-                {/* Rutas Protegidas (Usando ProtectedRoute como envoltorio) */}
-                <Route element={<ProtectedRoute />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                </Route>
-                
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </BrowserRouter>
-    </React.StrictMode>
-);
+        {/* Cambia esto para pasar el Dashboard como hijo */}
+        <Route 
+            path="/dashboard" 
+            element={
+                <ProtectedRoute>
+                    <Dashboard />
+                </ProtectedRoute>
+            } 
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+            </BrowserRouter>
+        </React.StrictMode>
+    );
