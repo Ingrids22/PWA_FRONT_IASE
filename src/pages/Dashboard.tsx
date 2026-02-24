@@ -276,7 +276,7 @@ export default function Dashboard() {
           <span>Total: <b>{stats.total}</b></span>
           <span>Hechas: <b>{stats.done}</b></span>
           
-          {/* NUEVO: Indicador de estado de conexión */}
+          {/* Indicador de estado de conexión */}
           <div className="connection-status" title={online ? "Conectado" : "Desconectado"}>
             <span 
               className="status-dot" 
