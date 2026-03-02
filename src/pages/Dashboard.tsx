@@ -55,9 +55,35 @@ export default function Dashboard() {
   const [editingDescription, setEditingDescription] = useState("");
   const [online, setOnline] = useState<boolean>(navigator.onLine);
 
+  // 1. NUEVO: Estados para personalización y barra lateral
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("user-theme");
+    return saved ? JSON.parse(saved) : {
+      fontSize: "16px",
+      fontFamily: "Inter, sans-serif",
+      accentColor: "#1f6feb",
+      background: "#0b0d10"
+    };
+  });
+
+  // 2. NUEVO: Efecto para aplicar cambios visuales y persistencia
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--main-bg", theme.background);
+    root.style.setProperty("--accent-color", theme.accentColor);
+    root.style.setProperty("--font-family", theme.fontFamily);
+    root.style.setProperty("--main-font-size", theme.fontSize);
+    
+    localStorage.setItem("user-theme", JSON.stringify(theme));
+  }, [theme]);
+
+  const updateTheme = (key: string, value: string) => {
+    setTheme((prev: any) => ({ ...prev, [key]: value }));
+  };
+
   useEffect(() => {
     setAuth(localStorage.getItem("token"));
-
     const unsubscribe = setupOnlineSync();
 
     const on = async () => {
@@ -85,6 +111,7 @@ export default function Dashboard() {
     };
   }, []);
 
+  // ... (Tus funciones addTask, saveEdit, handleStatusChange, removeTask y logout se mantienen igual)
   async function loadFromServer() {
     try {
       const { data } = await api.get("/tasks");
@@ -92,11 +119,7 @@ export default function Dashboard() {
       const list = raw.map(normalizeTask);
       setTasks(list);
       await cacheTasks(list);
-    } catch {
-      // Error silencioso, usa cache
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* Error silencioso */ } finally { setLoading(false); }
   }
 
   async function addTask(e: React.FormEvent) {
@@ -104,45 +127,22 @@ export default function Dashboard() {
     const t = title.trim();
     const d = description.trim();
     if (!t) return;
-
     const clienteId = crypto.randomUUID();
-    const localTask = normalizeTask({
-      _id: clienteId,
-      title: t,
-      description: d,
-      status: "Pendiente" as Status,
-      pending: !navigator.onLine,
-    });
-
+    const localTask = normalizeTask({ _id: clienteId, title: t, description: d, status: "Pendiente" as Status, pending: !navigator.onLine });
     setTasks((prev) => [localTask, ...prev]);
     await putTaskLocal(localTask);
-    setTitle("");
-    setDescription("");
-
+    setTitle(""); setDescription("");
     if (!navigator.onLine) {
-      await queue({
-        id: "op-" + clienteId,
-        op: "create",
-        clienteId,
-        data: localTask,
-        ts: Date.now(),
-      });
+      await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
       return;
     }
-
     try {
       const { data } = await api.post("/tasks", { title: t, description: d });
       const created = normalizeTask(data?.task ?? data);
       setTasks((prev) => prev.map((x) => (x._id === clienteId ? created : x)));
       await putTaskLocal(created);
     } catch {
-      await queue({
-        id: "op-" + clienteId,
-        op: "create",
-        clienteId,
-        data: localTask,
-        ts: Date.now(),
-      });
+      await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
     }
   }
 
@@ -156,84 +156,43 @@ export default function Dashboard() {
     const newTitle = editingTitle.trim();
     const newDesc = editingDescription.trim();
     if (!newTitle) return;
-
     const before = tasks.find((t) => t._id === taskId);
     const patched = { ...before, title: newTitle, description: newDesc } as Task;
-
     setTasks((prev) => prev.map((t) => (t._id === taskId ? patched : t)));
     await putTaskLocal(patched);
     setEditingId(null);
-
     const opData = { title: newTitle, description: newDesc };
     if (!navigator.onLine) {
-      await queue({
-        id: "upd-" + taskId,
-        op: "update",
-        clienteId: isLocalId(taskId) ? taskId : undefined,
-        serverId: isLocalId(taskId) ? undefined : taskId,
-        data: opData,
-        ts: Date.now(),
-      } as OutboxOp);
+      await queue({ id: "upd-" + taskId, op: "update", clienteId: isLocalId(taskId) ? taskId : undefined, serverId: isLocalId(taskId) ? undefined : taskId, data: opData, ts: Date.now() } as OutboxOp);
       return;
     }
-
-    try {
-      await api.put(`/tasks/${taskId}`, opData);
-    } catch {
-      await queue({
-        id: "upd-" + taskId,
-        op: "update",
-        serverId: taskId,
-        data: opData,
-        ts: Date.now(),
-      } as OutboxOp);
-    }
+    try { await api.put(`/tasks/${taskId}`, opData); } 
+    catch { await queue({ id: "upd-" + taskId, op: "update", serverId: taskId, data: opData, ts: Date.now() } as OutboxOp); }
   }
 
   async function handleStatusChange(task: Task, newStatus: Status) {
     const updated = { ...task, status: newStatus };
     setTasks((prev) => prev.map((x) => (x._id === task._id ? updated : x)));
     await putTaskLocal(updated);
-
     const opData = { status: newStatus };
     if (!navigator.onLine) {
-      await queue({
-        id: "upd-" + task._id,
-        op: "update",
-        serverId: isLocalId(task._id) ? undefined : task._id,
-        clienteId: isLocalId(task._id) ? task._id : undefined,
-        data: opData,
-        ts: Date.now(),
-      });
+      await queue({ id: "upd-" + task._id, op: "update", serverId: isLocalId(task._id) ? undefined : task._id, clienteId: isLocalId(task._id) ? task._id : undefined, data: opData, ts: Date.now() });
       return;
     }
-
-    try {
-      await api.put(`/tasks/${task._id}`, opData);
-    } catch {
-      await queue({
-        id: "upd-" + task._id,
-        op: "update",
-        serverId: task._id,
-        data: opData,
-        ts: Date.now(),
-      });
-    }
+    try { await api.put(`/tasks/${task._id}`, opData); } 
+    catch { await queue({ id: "upd-" + task._id, op: "update", serverId: task._id, data: opData, ts: Date.now() }); }
   }
 
   async function removeTask(taskId: string) {
     const backup = tasks;
     setTasks((prev) => prev.filter((t) => t._id !== taskId));
     await removeTaskLocal(taskId);
-
     if (!navigator.onLine) {
       await queue({ id: "del-" + taskId, op: "delete", serverId: isLocalId(taskId) ? undefined : taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
       return;
     }
-
-    try {
-      await api.delete(`/tasks/${taskId}`);
-    } catch {
+    try { await api.delete(`/tasks/${taskId}`); } 
+    catch {
       setTasks(backup);
       for (const t of backup) await putTaskLocal(t);
       await queue({ id: "del-" + taskId, op: "delete", serverId: taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
@@ -250,11 +209,7 @@ export default function Dashboard() {
     let list = tasks;
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter(
-        (t) =>
-          (t.title || "").toLowerCase().includes(s) ||
-          (t.description || "").toLowerCase().includes(s)
-      );
+      list = list.filter((t) => (t.title || "").toLowerCase().includes(s) || (t.description || "").toLowerCase().includes(s));
     }
     if (filter === "active") list = list.filter((t) => t.status !== "Completada");
     if (filter === "completed") list = list.filter((t) => t.status === "Completada");
@@ -276,7 +231,6 @@ export default function Dashboard() {
           <span>Total: <b>{stats.total}</b></span>
           <span>Hechas: <b>{stats.done}</b></span>
           
-          {/* Indicador de estado de conexión */}
           <div className="connection-status" title={online ? "Conectado" : "Desconectado"}>
             <span 
               className="status-dot" 
@@ -293,27 +247,13 @@ export default function Dashboard() {
 
       <main>
         <form className="add add-grid" onSubmit={addTask}>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Título de la tarea…"
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Descripción (opcional)…"
-            rows={2}
-          />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título de la tarea…" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción (opcional)…" rows={2} />
           <button className="btn">Agregar</button>
         </form>
 
         <div className="toolbar">
-          <input
-            className="search"
-            placeholder="Buscar por título o descripción…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <input className="search" placeholder="Buscar por título o descripción…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <div className="filters">
             <button className={filter === "all" ? "chip active" : "chip"} onClick={() => setFilter("all")}>Todas</button>
             <button className={filter === "active" ? "chip active" : "chip"} onClick={() => setFilter("active")}>Activas</button>
@@ -329,11 +269,7 @@ export default function Dashboard() {
           <ul className="list">
             {filtered.map((t) => (
               <li key={t._id} className={t.status === "Completada" ? "item done" : "item"}>
-                <select
-                  value={t.status}
-                  onChange={(e) => handleStatusChange(t, e.target.value as Status)}
-                  className="status-select"
-                >
+                <select value={t.status} onChange={(e) => handleStatusChange(t, e.target.value as Status)} className="status-select">
                   <option value="Pendiente">Pendiente</option>
                   <option value="En Progreso">En Progreso</option>
                   <option value="Completada">Completada</option>
@@ -371,6 +307,72 @@ export default function Dashboard() {
           </ul>
         )}
       </main>
+
+      {/* 3. NUEVO: Componentes de Personalización */}
+      <button 
+        className="config-toggle" 
+        onClick={() => setIsSidebarOpen(true)}
+        style={{ background: theme.accentColor }}
+      >
+        🎨
+      </button>
+
+      <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-header">
+          <h3>Apariencia</h3>
+          <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
+        </div>
+
+        <div className="config-section">
+          <h4>Tipografía</h4>
+          <select 
+            value={theme.fontFamily} 
+            onChange={(e) => updateTheme("fontFamily", e.target.value)}
+            className="status-select"
+            style={{ width: '100%' }}
+          >
+            <option value="Inter, sans-serif">Moderna (Inter)</option>
+            <option value="'Playfair Display', serif">Elegante (Serif)</option>
+            <option value="'JetBrains Mono', monospace">Código (Mono)</option>
+          </select>
+        </div>
+
+        <div className="config-section">
+          <h4>Tamaño de letra</h4>
+          <div className="filters">
+            <button className={theme.fontSize === '14px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '14px')}>Pequeño</button>
+            <button className={theme.fontSize === '16px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '16px')}>Normal</button>
+            <button className={theme.fontSize === '20px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '20px')}>Grande</button>
+          </div>
+        </div>
+
+        <div className="config-section">
+          <h4>Fondo</h4>
+          <div className="options-grid">
+            <button onClick={() => updateTheme("background", "#0b0d10")}>Noche</button>
+            <button onClick={() => updateTheme("background", "#1a202c")}>Azul Gris</button>
+            <button onClick={() => updateTheme("background", "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)")}>Gradiente</button>
+            <button 
+            onClick={() => { 
+            updateTheme("background", "#f8fafc"); 
+            updateTheme("accentColor", "#3b82f6");
+            updateTheme("mainColor", "#1a202c"); // Un gris oscuro para que sea legible 
+            }}
+              >
+              Claro
+              </button>          </div>
+        </div>
+
+        <div className="config-section">
+          <h4>Color de acento</h4>
+          <input 
+            type="color" 
+            value={theme.accentColor} 
+            onChange={(e) => updateTheme("accentColor", e.target.value)} 
+            style={{ width: '100%', height: '40px', cursor: 'pointer', border: 'none', borderRadius: '8px' }}
+          />
+        </div>
+      </aside>
     </div>
   );
 }
