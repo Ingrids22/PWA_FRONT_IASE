@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Settings, Theme, Density, BorderRadius, Sound } from "./useSettings";
-import { playCompletionSound } from "./useSettings";
+import type { Settings, Theme, Density, BorderRadius, Sound, FontFamily } from "./useSettings";
+import { playCompletionSound, FONT_FAMILIES } from "./useSettings";
 import "./SettingsPanel.css";
 
 interface Props {
@@ -16,10 +16,10 @@ const THEMES: { id: Theme; label: string; emoji: string }[] = [
   { id: "light",   label: "Claro",   emoji: "☀️" },
 ];
 
-const DENSITIES: { id: Density; label: string; icon: string }[] = [
-  { id: "compact",  label: "Compacto",  icon: "⬛⬛⬛" },
-  { id: "normal",   label: "Normal",    icon: "⬛ ⬛" },
-  { id: "spacious", label: "Espaciado", icon: "⬛  ⬛" },
+const DENSITIES: { id: Density; label: string }[] = [
+  { id: "compact",  label: "Compacto"  },
+  { id: "normal",   label: "Normal"    },
+  { id: "spacious", label: "Espaciado" },
 ];
 
 const RADII: { id: BorderRadius; label: string }[] = [
@@ -34,6 +34,12 @@ const SOUNDS: { id: Sound; label: string; emoji: string }[] = [
   { id: "bell",  label: "Campana",  emoji: "🔔" },
   { id: "chime", label: "Chime",    emoji: "🎵" },
 ];
+
+const FONTS = Object.entries(FONT_FAMILIES).map(([id, val]) => ({
+  id: id as FontFamily,
+  label: val.label,
+  stack: val.stack,
+}));
 
 export default function SettingsPanel({ settings, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
@@ -73,13 +79,52 @@ export default function SettingsPanel({ settings, onUpdate }: Props) {
                 <button
                   key={t.id}
                   className={`sp-theme-btn ${settings.theme === t.id ? "active" : ""}`}
-                  data-theme={t.id}
                   onClick={() => onUpdate({ theme: t.id })}
                 >
                   <span className="sp-theme-dot" data-theme={t.id} />
                   <span>{t.emoji} {t.label}</span>
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* FUENTE */}
+          <section className="sp-section">
+            <h3 className="sp-label">Tipo de Letra</h3>
+            <div className="sp-font-list">
+              {FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  className={`sp-font-btn ${settings.fontFamily === f.id ? "active" : ""}`}
+                  style={{ fontFamily: f.stack }}
+                  onClick={() => onUpdate({ fontFamily: f.id })}
+                >
+                  <span className="sp-font-preview" style={{ fontFamily: f.stack }}>Aa</span>
+                  <span className="sp-font-name">{f.label}</span>
+                  <span className="sp-font-sample" style={{ fontFamily: f.stack }}>Hola mundo</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* TAMAÑO DE FUENTE */}
+          <section className="sp-section">
+            <h3 className="sp-label">
+              Tamaño de Letra
+              <span className="sp-value">{settings.fontSize}px</span>
+            </h3>
+            <input
+              type="range"
+              min={12}
+              max={20}
+              step={1}
+              value={settings.fontSize}
+              onChange={(e) => onUpdate({ fontSize: Number(e.target.value) })}
+              className="sp-slider"
+            />
+            <div className="sp-slider-labels">
+              <span>A</span>
+              <span style={{ fontSize: "1.3em" }}>A</span>
             </div>
           </section>
 
@@ -112,27 +157,6 @@ export default function SettingsPanel({ settings, onUpdate }: Props) {
                   {r.label}
                 </button>
               ))}
-            </div>
-          </section>
-
-          {/* TAMAÑO DE FUENTE */}
-          <section className="sp-section">
-            <h3 className="sp-label">
-              Tamaño de Fuente
-              <span className="sp-value">{settings.fontSize}px</span>
-            </h3>
-            <input
-              type="range"
-              min={12}
-              max={20}
-              step={1}
-              value={settings.fontSize}
-              onChange={(e) => onUpdate({ fontSize: Number(e.target.value) })}
-              className="sp-slider"
-            />
-            <div className="sp-slider-labels">
-              <span>A</span>
-              <span style={{ fontSize: "1.3em" }}>A</span>
             </div>
           </section>
 

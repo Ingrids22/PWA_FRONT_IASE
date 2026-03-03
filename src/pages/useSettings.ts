@@ -4,6 +4,7 @@ export type Theme = "dark" | "ocean" | "sepia" | "dracula" | "light";
 export type Density = "compact" | "normal" | "spacious";
 export type BorderRadius = "sharp" | "normal" | "round";
 export type Sound = "none" | "pop" | "bell" | "chime";
+export type FontFamily = "inter" | "mono" | "rounded" | "serif" | "humanist";
 
 export interface Settings {
   theme: Theme;
@@ -11,6 +12,7 @@ export interface Settings {
   borderRadius: BorderRadius;
   sound: Sound;
   fontSize: number;
+  fontFamily: FontFamily;
 }
 
 const DEFAULTS: Settings = {
@@ -19,6 +21,7 @@ const DEFAULTS: Settings = {
   borderRadius: "normal",
   sound: "pop",
   fontSize: 15,
+  fontFamily: "inter",
 };
 
 const THEMES: Record<Theme, Record<string, string>> = {
@@ -108,12 +111,61 @@ const RADII: Record<BorderRadius, string> = {
   round: "20px",
 };
 
+export const FONT_FAMILIES: Record<FontFamily, { label: string; stack: string; google?: string; preview: string }> = {
+  inter: {
+    label: "Inter",
+    stack: "'Inter', system-ui, sans-serif",
+    google: "Inter:wght@400;500;600;700",
+    preview: "Aa",
+  },
+  mono: {
+    label: "Monospace",
+    stack: "'JetBrains Mono', 'Fira Code', monospace",
+    google: "JetBrains+Mono:wght@400;500;700",
+    preview: "Aa",
+  },
+  rounded: {
+    label: "Redondeada",
+    stack: "'Nunito', 'Varela Round', sans-serif",
+    google: "Nunito:wght@400;600;700;800",
+    preview: "Aa",
+  },
+  serif: {
+    label: "Serif",
+    stack: "'Lora', Georgia, serif",
+    google: "Lora:wght@400;500;600;700",
+    preview: "Aa",
+  },
+  humanist: {
+    label: "Humanista",
+    stack: "'DM Sans', sans-serif",
+    google: "DM+Sans:wght@400;500;600;700",
+    preview: "Aa",
+  },
+};
+
+// Carga dinámica de Google Fonts
+const loadedFonts = new Set<string>();
+function loadGoogleFont(fontId: FontFamily) {
+  const font = FONT_FAMILIES[fontId];
+  if (!font.google || loadedFonts.has(fontId)) return;
+  loadedFonts.add(fontId);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
+  document.head.appendChild(link);
+}
+
 function applySettings(s: Settings) {
   const root = document.documentElement;
   Object.entries(THEMES[s.theme]).forEach(([k, v]) => root.style.setProperty(k, v));
   Object.entries(DENSITIES[s.density]).forEach(([k, v]) => root.style.setProperty(k, v));
   root.style.setProperty("--radius", RADII[s.borderRadius]);
   root.style.setProperty("--base-font-size", `${s.fontSize}px`);
+
+  // Fuente
+  loadGoogleFont(s.fontFamily);
+  root.style.setProperty("--font-family", FONT_FAMILIES[s.fontFamily].stack);
 }
 
 // Simple audio synthesis for sounds

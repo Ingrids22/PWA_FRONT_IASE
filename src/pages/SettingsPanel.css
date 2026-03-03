@@ -180,6 +180,56 @@
 .sp-theme-dot[data-theme="dracula"] { background: #bd93f9; }
 .sp-theme-dot[data-theme="light"]   { background: #dde3ea; border: 1px solid #c8d0da; }
 
+/* --- Lista de fuentes --- */
+.sp-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-font-btn {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg3, #11151a);
+  border: 1px solid var(--border2, #2a2f36);
+  border-radius: var(--radius, 12px);
+  color: var(--text, #e7eaee);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+}
+
+.sp-font-btn:hover {
+  border-color: var(--accent, #1f6feb);
+}
+
+.sp-font-btn.active {
+  border-color: var(--accent2, #4a81ff);
+  background: var(--bg, #0b0d10);
+}
+
+.sp-font-preview {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent2, #4a81ff);
+}
+
+.sp-font-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #e7eaee);
+}
+
+.sp-font-sample {
+  font-size: 11px;
+  color: var(--text2, #9aa7b2);
+  white-space: nowrap;
+}
+
 /* --- Row de chips --- */
 .sp-row {
   display: flex;
@@ -277,11 +327,22 @@
 }
 
 /* =====================================================
-   Variables CSS que aplican los temas al resto del app
-   (las pone useSettings.ts en :root automáticamente)
+   Variables CSS globales — aplican temas y fuentes
+   a todo el dashboard automáticamente
    ===================================================== */
 
-/* Conectar variables del panel con los estilos existentes */
+body,
+#root,
+.wrap,
+.topbar,
+main,
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-family, 'Inter', system-ui, sans-serif) !important;
+}
+
 body {
   background: var(--bg, #0b0d10) !important;
   color: var(--text, #e7eaee) !important;
