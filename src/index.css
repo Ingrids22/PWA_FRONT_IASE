@@ -1,130 +1,441 @@
-/* =========================================
-   1. VARIABLES Y CONFIGURACIÓN BASE
-   ========================================= */
-:root { 
-  --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; 
-  --main-bg: #0b0d10;
-  --main-color: #e7eaee;
-  --accent-color: #1f6feb;
-  --card-bg: #0e1217;
-  --input-bg: #11151a;
-  --border-color: #2a2f36;
+:root { font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; }
+
+*{ box-sizing: border-box; }
+
+body { margin: 0; background: #0b0d10; color: #e7eaee; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+
+
+.topbar { display: flex; align-items: center; gap: 12px; }
+
+.topbar h1 { font-size: 20px; margin: 0; }
+
+.spacer { flex: 1; }
+
+.stats { display: flex; gap: 12px; font-size: 14px; opacity: .85; }
+
+.btn { background: #1f6feb; color: white; border: 0; padding: 8px 12px; border-radius: 10px; cursor: pointer; }
+
+.btn.danger { background: #d83a3a; }
+
+.icon { background: transparent; border: 0; cursor: pointer; font-size: 18px; }
+
+.icon.danger { color: #ff6b6b; }
+
+
+
+.add-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+
+.add-grid textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; background-color: #0b0d10; border: 1px solid #2a2f36; color: #e7eaee; padding: 10px 12px; border-radius: 10px; }
+
+
+
+.item { grid-template-columns: 28px 1fr auto; }
+
+.content { display: grid; gap: 6px; }
+
+.desc { margin: 0; font-size: 13px; color: #aeb6c1; }
+
+.edit { width: 100%; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
+
+
+
+.add input { flex: 1; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 10px 12px; border-radius: 10px; }
+
+
+
+.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+
+.search { flex: 1; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 12px; border-radius: 10px; }
+
+.filters { display: flex; gap: 8px; }
+
+.chip { background: #141922; border: 1px solid #2a2f36; color: #c7cfdb; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+
+.chip.active { border-color: #4a81ff; color: #ffffff; }
+
+
+
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+
+.item { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px;
+
+        background: #0e1217; border: 1px solid #1b2027; padding: 10px 12px; border-radius: 12px; }
+
+.item.done .title { text-decoration: line-through; opacity: .6; }
+
+.check input { width: 18px; height: 18px; }
+
+.title { user-select: none; }
+
+.actions { display: flex; gap: 6px; }
+
+
+
+.edit { width: 100%; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
+
+.empty { opacity: .7; text-align: center; margin-top: 24px; }
+
+
+
+@media (max-width: 520px) {
+
+  .stats { display: none; }
+
 }
+
+
+
+/* base existente… */
+
+:root { font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; }
 
 * { box-sizing: border-box; }
 
-body { 
-  margin: 0; 
-  background: var(--main-bg); 
-  color: var(--main-color); 
-  font-family: var(--font-family);
-  background-size: cover;
-  background-attachment: fixed;
-  min-height: 100vh;
+body { margin: 0; background: #0b0d10; color: #e7eaee; }
+
+
+
+/* Auth layout */
+
+.auth-wrap {
+
+  min-height: 100dvh;
+
+  display: grid;
+
+  place-items: center;
+
+  padding: 24px;
+
 }
 
-/* =========================================
-   2. ESTRUCTURA DASHBOARD
-   ========================================= */
-.wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+.card {
 
-.topbar { display: flex; align-items: center; gap: 12px; padding: 1rem 0; }
-.topbar h1 { font-size: 20px; margin: 0; }
-.spacer { flex: 1; }
+  width: 100%;
 
-.stats { display: flex; gap: 12px; font-size: 14px; align-items: center; }
+  max-width: 420px;
+
+  background: #0f1318;
+
+  border: 1px solid #1b2027;
+
+  border-radius: 16px;
+
+  padding: 28px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+
+}
+
+.brand { text-align: center; margin-bottom: 18px; }
+
+.logo {
+
+  width: 52px; height: 52px; margin: 0 auto 10px;
+
+  display: grid; place-items: center; border-radius: 14px;
+
+  background: #101826; border: 1px solid #22314a; font-size: 24px;
+
+}
+
+.muted { color: #9aa7b2; font-size: 14px; margin-top: 4px; }
+
+
+
+.form { display: grid; gap: 10px; margin-top: 12px; }
+
+.form label { font-size: 13px; color: #b8c2cc; }
+
+.form input {
+
+  border: 1px solid #232a33; background: #0e1217; color: #e7eaee;
+
+  padding: 12px 12px; border-radius: 12px; outline: none;
+
+}
+
+.form input:focus { border-color: #3d74ff; box-shadow: 0 0 0 3px rgba(61,116,255,.15); }
+
+
+
+.pass { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
+
+.ghost { border: 0; background: transparent; color: #b8c2cc; cursor: pointer; padding: 6px 8px; }
+
+
+
+.btn { border: 0; padding: 12px 14px; border-radius: 12px; cursor: pointer; }
+
+.btn.primary { background: #1f6feb; color: #fff; }
+
+.btn.primary:disabled { opacity: .6; cursor: not-allowed; }
+
+
+
+.alert {
+
+  background: #2a1a1a; border: 1px solid #6b2a2a; color: #ffd0d0;
+
+  padding: 10px 12px; border-radius: 10px; font-size: 14px;
+
+}
+
+
+
+.footer-links {
+
+  margin-top: 14px; display: flex; gap: 8px; justify-content: center; align-items: center;
+
+}
+
+.link { color: #7aa7ff; text-decoration: none; }
+
+.link:hover { text-decoration: underline; }
+
+
+
+/* (tu CSS de dashboard puede permanecer igual) */
+
+.logo-img { width: 100px; height: 100px; object-fit: contain; display:block; margin: 0 auto 10px; }
+
+
+
+
+
+/* select tareas status */
+
+
+
+.status-select {
+
+  width: 160px;
+
+  border: 1px solid #2a2f36;
+
+  background: #11151a;
+
+  color: #e7eaee;
+
+  padding: 8px 10px;
+
+  border-radius: 8px;
+
+}
+
+.item { grid-template-columns: 180px 1fr auto; } /* espacio para el select */
+
+
+
+
+
+.badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+
+.status-select { width: 160px; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
+
+.item { grid-template-columns: 180px 1fr auto; }
+
+
+
+/* select tareas status */
+
+
+
+.status-select {
+
+  width: 160px;
+
+  border: 1px solid #2a2f36;
+
+  background: #11151a;
+
+  color: #e7eaee;
+
+  padding: 8px 10px;
+
+  border-radius: 8px;
+
+}
+
+.item { grid-template-columns: 180px 1fr auto; } /* espacio para el select */
+
+
+
+
+
+.badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+
+.status-select { width: 160px; border: 1px solid #2a2f36; background: #11151a; color: #e7eaee; padding: 8px 10px; border-radius: 8px; }
+
+.item { grid-template-columns: 180px 1fr auto; }
+
+
+
+.topbar {
+
+  display: flex;
+
+  align-items: center;
+
+  padding: 1rem;
+
+  /* background: #1a1a1a;  ← elimínalo */
+
+  color: white;
+
+}
+
+
+
+.stats {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+
+}
+
+
+
+/* Contenedor del estado */
 
 .connection-status {
+
   display: flex;
+
   align-items: center;
+
   gap: 8px;
+
   padding: 4px 10px;
-  background: rgba(0,0,0,0.2);
+
+  background: #0b0d10;
+
   border-radius: 20px;
+
+  font-size: 0.9rem;
+
 }
+
+
+
+/* El círculo (LED) */
 
 .status-dot {
+
   width: 10px;
+
   height: 10px;
+
   border-radius: 50%;
+
+  display: inline-block;
+
+  /* Efecto de resplandor */
+
   box-shadow: 0 0 8px currentColor;
+
+  transition: background-color 0.3s ease;
+
 }
 
-/* =========================================
-   3. FORMULARIOS Y BOTONES (LOGIN Y DASH)
-   ========================================= */
-.btn { 
-  background: var(--accent-color); 
-  color: white; 
-  border: 0; 
-  padding: 8px 14px; 
-  border-radius: 10px; 
-  cursor: pointer; 
-  font-weight: 600;
-  transition: filter 0.2s;
-}
-.btn:hover { filter: brightness(1.2); }
-.btn.danger { background: #d83a3a; }
 
-.icon { background: transparent; border: 0; cursor: pointer; font-size: 18px; padding: 4px; }
-.icon.danger { color: #ff6b6b; }
 
-.add-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 20px; }
-.add-grid textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
+.spacer {
 
-.search, .add input, .add-grid textarea, .status-select, .edit {
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--main-color);
-  padding: 10px 12px;
-  border-radius: 10px;
-  outline: none;
-  width: 100%;
+  flex: 1;
+
 }
 
-.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 15px; }
-.filters { display: flex; gap: 8px; }
 
-.chip { 
-  background: var(--input-bg); 
-  border: 1px solid var(--border-color); 
-  color: var(--main-color); 
-  padding: 6px 12px; 
-  border-radius: 999px; 
-  cursor: pointer; 
-  font-size: 13px;
-}
-.chip.active { border-color: var(--accent-color); background: rgba(31, 111, 235, 0.1); color: white; }
 
-/* =========================================
-   4. LISTA DE TAREAS
-   ========================================= */
-.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+y esto contiene app.css
 
-.item { 
-  display: grid; 
-  grid-template-columns: 160px 1fr auto; 
-  align-items: center; 
-  gap: 12px;
-  background: var(--card-bg); 
-  border: 1px solid var(--border-color); 
-  padding: 12px; 
-  border-radius: 12px; 
+#root {
+
+  max-width: 1280px;
+
+  margin: 0 auto;
+
+  padding: 2rem;
+
+  text-align: center;
+
 }
 
-.item.done { opacity: 0.7; }
-.item.done .title { text-decoration: line-through; }
 
-.content { display: grid; gap: 4px; }
-.title { font-weight: 600; }
-.desc { margin: 0; font-size: 13px; opacity: 0.8; }
-.badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
 
-/* =========================================
-   5. RESPONSIVE
-   ========================================= */
-@media (max-width: 600px) {
-  .item { grid-template-columns: 1fr auto; }
-  .status-select { grid-column: 1 / -1; width: 100%; order: 3; }
-  .stats { display: none; }
+.logo {
+
+  height: 6em;
+
+  padding: 1.5em;
+
+  will-change: filter;
+
+  transition: filter 300ms;
+
+}
+
+.logo:hover {
+
+  filter: drop-shadow(0 0 2em #646cffaa);
+
+}
+
+.logo.react:hover {
+
+  filter: drop-shadow(0 0 2em #61dafbaa);
+
+}
+
+
+
+@keyframes logo-spin {
+
+  from {
+
+    transform: rotate(0deg);
+
+  }
+
+  to {
+
+    transform: rotate(360deg);
+
+  }
+
+}
+
+
+
+@media (prefers-reduced-motion: no-preference) {
+
+  a:nth-of-type(2) .logo {
+
+    animation: logo-spin infinite 20s linear;
+
+  }
+
+}
+
+
+
+.card {
+
+  padding: 2em;
+
+}
+
+
+
+.read-the-docs {
+
+  color: #888;
+
 }

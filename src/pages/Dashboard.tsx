@@ -1,226 +1,751 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { api, setAuth } from "../api";
-import { cacheTasks, getAllTasksLocal, putTaskLocal, removeTaskLocal, queue } from "../offline/db";
+
+import {
+
+  cacheTasks,
+
+  getAllTasksLocal,
+
+  putTaskLocal,
+
+  removeTaskLocal,
+
+  queue,
+
+  type OutboxOp,
+
+} from "../offline/db";
+
 import { syncNow, setupOnlineSync } from "../offline/sync";
+
+
 
 type Status = "Pendiente" | "En Progreso" | "Completada";
 
+
+
 type Task = {
+
   _id: string;
+
   title: string;
+
   description?: string;
+
   status: Status;
+
   clienteId?: string;
+
   createdAt?: string;
+
   deleted?: boolean;
+
   pending?: boolean;
+
 };
+
+
 
 const isLocalId = (id: string) => !/^[a-f0-9]{24}$/i.test(id);
 
+
+
 function normalizeTask(x: any): Task {
+
   return {
+
     _id: String(x?._id ?? x?.id),
+
     title: String(x?.title ?? "(sin título)"),
+
     description: x?.description ?? "",
-    status: ["Pendiente", "En Progreso", "Completada"].includes(x?.status) ? x.status : "Pendiente",
+
+    status:
+
+      x?.status === "Completada" ||
+
+      x?.status === "En Progreso" ||
+
+      x?.status === "Pendiente"
+
+        ? x.status
+
+        : "Pendiente",
+
     clienteId: x?.clienteId,
+
     createdAt: x?.createdAt,
+
     deleted: !!x?.deleted,
+
     pending: !!x?.pending,
+
   };
+
 }
 
+
+
 export default function Dashboard() {
+
   const [loading, setLoading] = useState(true);
+
   const [tasks, setTasks] = useState<Task[]>([]);
+
   const [title, setTitle] = useState("");
+
   const [description, setDescription] = useState("");
+
   const [search, setSearch] = useState("");
+
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [editingTitle, setEditingTitle] = useState("");
+
+  const [editingDescription, setEditingDescription] = useState("");
+
   const [online, setOnline] = useState<boolean>(navigator.onLine);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("user-theme");
-    return saved ? JSON.parse(saved) : {
-      fontSize: "16px",
-      fontFamily: "Inter, sans-serif",
-      accentColor: "#1f6feb",
-      background: "#0b0d10",
-      mainColor: "#e7eaee"
-    };
-  });
+
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--main-bg", theme.background);
-    root.style.setProperty("--accent-color", theme.accentColor);
-    root.style.setProperty("--font-family", theme.fontFamily);
-    root.style.setProperty("--main-font-size", theme.fontSize);
-    root.style.setProperty("--main-color", theme.mainColor);
-    localStorage.setItem("user-theme", JSON.stringify(theme));
-  }, [theme]);
 
-  // CORRECCIÓN PARA VERCEL: Tipo explícito para 'prev'
-  const updateTheme = (updates: Partial<typeof theme>) => {
-    setTheme((prev: typeof theme) => ({ ...prev, ...updates }));
-  };
-
-  useEffect(() => {
     setAuth(localStorage.getItem("token"));
+
+
+
     const unsubscribe = setupOnlineSync();
-    const on = async () => { setOnline(true); await syncNow(); await loadFromServer(); };
+
+
+
+    const on = async () => {
+
+      setOnline(true);
+
+      await syncNow();
+
+      await loadFromServer();
+
+    };
+
     const off = () => setOnline(false);
+
+   
+
     window.addEventListener("online", on);
+
     window.addEventListener("offline", off);
 
+
+
     (async () => {
+
       const local = await getAllTasksLocal();
+
       if (local?.length) setTasks(local.map(normalizeTask));
+
       await loadFromServer();
+
       await syncNow();
+
+      await loadFromServer();
+
     })();
 
-    return () => { 
-      unsubscribe?.(); 
-      window.removeEventListener("online", on); 
-      window.removeEventListener("offline", off); 
+
+
+    return () => {
+
+      unsubscribe?.();
+
+      window.removeEventListener("online", on);
+
+      window.removeEventListener("offline", off);
+
     };
+
   }, []);
 
+
+
   async function loadFromServer() {
+
     try {
+
       const { data } = await api.get("/tasks");
-      const list = (Array.isArray(data?.items) ? data.items : []).map(normalizeTask);
+
+      const raw = Array.isArray(data?.items) ? data.items : [];
+
+      const list = raw.map(normalizeTask);
+
       setTasks(list);
+
       await cacheTasks(list);
-    } catch { } finally { setLoading(false); }
+
+    } catch {
+
+      // Error silencioso, usa cache
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
   }
+
+
 
   async function addTask(e: React.FormEvent) {
+
     e.preventDefault();
-    if (!title.trim()) return;
+
+    const t = title.trim();
+
+    const d = description.trim();
+
+    if (!t) return;
+
+
+
     const clienteId = crypto.randomUUID();
-    const localTask = normalizeTask({ _id: clienteId, title, description, status: "Pendiente" });
-    setTasks(prev => [localTask, ...prev]);
+
+    const localTask = normalizeTask({
+
+      _id: clienteId,
+
+      title: t,
+
+      description: d,
+
+      status: "Pendiente" as Status,
+
+      pending: !navigator.onLine,
+
+    });
+
+
+
+    setTasks((prev) => [localTask, ...prev]);
+
     await putTaskLocal(localTask);
-    setTitle(""); setDescription("");
-    
+
+    setTitle("");
+
+    setDescription("");
+
+
+
     if (!navigator.onLine) {
-      await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
+
+      await queue({
+
+        id: "op-" + clienteId,
+
+        op: "create",
+
+        clienteId,
+
+        data: localTask,
+
+        ts: Date.now(),
+
+      });
+
       return;
+
     }
+
+
+
     try {
-      const { data } = await api.post("/tasks", { title: localTask.title, description: localTask.description });
+
+      const { data } = await api.post("/tasks", { title: t, description: d });
+
       const created = normalizeTask(data?.task ?? data);
-      setTasks(prev => prev.map(x => x._id === clienteId ? created : x));
+
+      setTasks((prev) => prev.map((x) => (x._id === clienteId ? created : x)));
+
       await putTaskLocal(created);
+
     } catch {
-      await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
+
+      await queue({
+
+        id: "op-" + clienteId,
+
+        op: "create",
+
+        clienteId,
+
+        data: localTask,
+
+        ts: Date.now(),
+
+      });
+
     }
+
   }
+
+
+
+  function startEdit(task: Task) {
+
+    setEditingId(task._id);
+
+    setEditingTitle(task.title);
+
+    setEditingDescription(task.description ?? "");
+
+  }
+
+
+
+  async function saveEdit(taskId: string) {
+
+    const newTitle = editingTitle.trim();
+
+    const newDesc = editingDescription.trim();
+
+    if (!newTitle) return;
+
+
+
+    const before = tasks.find((t) => t._id === taskId);
+
+    const patched = { ...before, title: newTitle, description: newDesc } as Task;
+
+
+
+    setTasks((prev) => prev.map((t) => (t._id === taskId ? patched : t)));
+
+    await putTaskLocal(patched);
+
+    setEditingId(null);
+
+
+
+    const opData = { title: newTitle, description: newDesc };
+
+    if (!navigator.onLine) {
+
+      await queue({
+
+        id: "upd-" + taskId,
+
+        op: "update",
+
+        clienteId: isLocalId(taskId) ? taskId : undefined,
+
+        serverId: isLocalId(taskId) ? undefined : taskId,
+
+        data: opData,
+
+        ts: Date.now(),
+
+      } as OutboxOp);
+
+      return;
+
+    }
+
+
+
+    try {
+
+      await api.put(`/tasks/${taskId}`, opData);
+
+    } catch {
+
+      await queue({
+
+        id: "upd-" + taskId,
+
+        op: "update",
+
+        serverId: taskId,
+
+        data: opData,
+
+        ts: Date.now(),
+
+      } as OutboxOp);
+
+    }
+
+  }
+
+
 
   async function handleStatusChange(task: Task, newStatus: Status) {
+
     const updated = { ...task, status: newStatus };
-    setTasks(prev => prev.map(x => x._id === task._id ? updated : x));
+
+    setTasks((prev) => prev.map((x) => (x._id === task._id ? updated : x)));
+
     await putTaskLocal(updated);
+
+
+
+    const opData = { status: newStatus };
+
     if (!navigator.onLine) {
-      await queue({ id: "upd-" + task._id, op: "update", serverId: isLocalId(task._id) ? undefined : task._id, clienteId: isLocalId(task._id) ? task._id : undefined, data: { status: newStatus }, ts: Date.now() });
+
+      await queue({
+
+        id: "upd-" + task._id,
+
+        op: "update",
+
+        serverId: isLocalId(task._id) ? undefined : task._id,
+
+        clienteId: isLocalId(task._id) ? task._id : undefined,
+
+        data: opData,
+
+        ts: Date.now(),
+
+      });
+
       return;
+
     }
-    try { await api.put(`/tasks/${task._id}`, { status: newStatus }); } 
-    catch { await queue({ id: "upd-" + task._id, op: "update", serverId: task._id, data: { status: newStatus }, ts: Date.now() }); }
+
+
+
+    try {
+
+      await api.put(`/tasks/${task._id}`, opData);
+
+    } catch {
+
+      await queue({
+
+        id: "upd-" + task._id,
+
+        op: "update",
+
+        serverId: task._id,
+
+        data: opData,
+
+        ts: Date.now(),
+
+      });
+
+    }
+
   }
+
+
 
   async function removeTask(taskId: string) {
-    setTasks(prev => prev.filter(t => t._id !== taskId));
+
+    const backup = tasks;
+
+    setTasks((prev) => prev.filter((t) => t._id !== taskId));
+
     await removeTaskLocal(taskId);
+
+
+
     if (!navigator.onLine) {
+
       await queue({ id: "del-" + taskId, op: "delete", serverId: isLocalId(taskId) ? undefined : taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
+
+      return;
+
     }
-    try { await api.delete(`/tasks/${taskId}`); } catch { }
+
+
+
+    try {
+
+      await api.delete(`/tasks/${taskId}`);
+
+    } catch {
+
+      setTasks(backup);
+
+      for (const t of backup) await putTaskLocal(t);
+
+      await queue({ id: "del-" + taskId, op: "delete", serverId: taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
+
+    }
+
   }
 
+
+
+  function logout() {
+
+    localStorage.removeItem("token");
+
+    setAuth(null);
+
+    window.location.href = "/";
+
+  }
+
+
+
   const filtered = useMemo(() => {
+
     let list = tasks;
+
     if (search.trim()) {
+
       const s = search.toLowerCase();
-      list = list.filter(t => t.title.toLowerCase().includes(s) || (t.description || "").toLowerCase().includes(s));
+
+      list = list.filter(
+
+        (t) =>
+
+          (t.title || "").toLowerCase().includes(s) ||
+
+          (t.description || "").toLowerCase().includes(s)
+
+      );
+
     }
-    if (filter === "active") list = list.filter(t => t.status !== "Completada");
-    if (filter === "completed") list = list.filter(t => t.status === "Completada");
+
+    if (filter === "active") list = list.filter((t) => t.status !== "Completada");
+
+    if (filter === "completed") list = list.filter((t) => t.status === "Completada");
+
     return list;
+
   }, [tasks, search, filter]);
 
+
+
+  const stats = useMemo(() => {
+
+    const total = tasks.length;
+
+    const done = tasks.filter((t) => t.status === "Completada").length;
+
+    return { total, done, pending: total - done };
+
+  }, [tasks]);
+
+
+
   return (
+
     <div className="wrap">
+
       <header className="topbar">
+
         <h1>To-Do PWA</h1>
+
         <div className="spacer" />
-        <div className="connection-status">
-          <span className="status-dot" style={{ backgroundColor: online ? "#22c55e" : "#ef4444" }} />
-          <small>{online ? "ONLINE" : "OFFLINE"}</small>
+
+        <div className="stats">
+
+          <span>Total: <b>{stats.total}</b></span>
+
+          <span>Hechas: <b>{stats.done}</b></span>
+
+         
+
+          {/* Indicador de estado de conexión */}
+
+          <div className="connection-status" title={online ? "Conectado" : "Desconectado"}>
+
+            <span
+
+              className="status-dot"
+
+              style={{ backgroundColor: online ? "#22c55e" : "#ef4444", boxShadow: `0 0 8px ${online ? "#22c55e" : "#ef4444"}` }}
+
+            />
+
+            <span style={{ color: online ? "#22c55e" : "#ef4444", fontWeight: "bold", fontSize: "0.85rem" }}>
+
+              {online ? "EN LÍNEA" : "SIN RED"}
+
+            </span>
+
+          </div>
+
+
+
+          <button className="btn danger" onClick={logout}>Salir</button>
+
         </div>
-        <button className="btn danger" onClick={() => { localStorage.removeItem("token"); window.location.href="/"; }}>Salir</button>
+
       </header>
 
+
+
       <main>
-        <form className="add-grid" onSubmit={addTask}>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Qué hay que hacer?" />
+
+        <form className="add add-grid" onSubmit={addTask}>
+
+          <input
+
+            value={title}
+
+            onChange={(e) => setTitle(e.target.value)}
+
+            placeholder="Título de la tarea…"
+
+          />
+
+          <textarea
+
+            value={description}
+
+            onChange={(e) => setDescription(e.target.value)}
+
+            placeholder="Descripción (opcional)…"
+
+            rows={2}
+
+          />
+
           <button className="btn">Agregar</button>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)..." rows={2} />
+
         </form>
 
+
+
         <div className="toolbar">
-          <input className="search" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
+
+          <input
+
+            className="search"
+
+            placeholder="Buscar por título o descripción…"
+
+            value={search}
+
+            onChange={(e) => setSearch(e.target.value)}
+
+          />
+
           <div className="filters">
-            <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
-            <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
-            <button className={`chip ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Hechas</button>
+
+            <button className={filter === "all" ? "chip active" : "chip"} onClick={() => setFilter("all")}>Todas</button>
+
+            <button className={filter === "active" ? "chip active" : "chip"} onClick={() => setFilter("active")}>Activas</button>
+
+            <button className={filter === "completed" ? "chip active" : "chip"} onClick={() => setFilter("completed")}>Hechas</button>
+
           </div>
+
         </div>
 
-        {/* USO DE loading PARA EVITAR ERROR TS */}
-        {loading && tasks.length === 0 ? (
-          <p style={{ textAlign: "center" }}>Cargando...</p>
+
+
+        {loading ? (
+
+          <p style={{ color: "white", textAlign: "center", marginTop: "2rem" }}>Cargando tareas...</p>
+
+        ) : filtered.length === 0 ? (
+
+          <p className="empty">Sin tareas</p>
+
         ) : (
+
           <ul className="list">
-            {filtered.map(t => (
-              <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
-                <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
+
+            {filtered.map((t) => (
+
+              <li key={t._id} className={t.status === "Completada" ? "item done" : "item"}>
+
+                <select
+
+                  value={t.status}
+
+                  onChange={(e) => handleStatusChange(t, e.target.value as Status)}
+
+                  className="status-select"
+
+                >
+
                   <option value="Pendiente">Pendiente</option>
+
                   <option value="En Progreso">En Progreso</option>
+
                   <option value="Completada">Completada</option>
+
                 </select>
+
+
+
                 <div className="content">
-                  <span className="title">{t.title}</span>
-                  {t.description && <p className="desc">{t.description}</p>}
+
+                  {editingId === t._id ? (
+
+                    <>
+
+                      <input className="edit" value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} autoFocus />
+
+                      <textarea className="edit" value={editingDescription} onChange={(e) => setEditingDescription(e.target.value)} rows={2} />
+
+                    </>
+
+                  ) : (
+
+                    <>
+
+                      <span className="title" onDoubleClick={() => startEdit(t)}>{t.title}</span>
+
+                      {t.description && <p className="desc">{t.description}</p>}
+
+                      {(t.pending || isLocalId(t._id)) && (
+
+                        <span className="badge" style={{ background: "#b45309", width: "fit-content", marginTop: "5px" }}>
+
+                          Falta sincronizar
+
+                        </span>
+
+                      )}
+
+                    </>
+
+                  )}
+
                 </div>
-                <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
+
+
+
+                <div className="actions">
+
+                  {editingId === t._id ? (
+
+                    <button className="btn" onClick={() => saveEdit(t._id)}>Guardar</button>
+
+                  ) : (
+
+                    <button className="icon" onClick={() => startEdit(t)}>✏️</button>
+
+                  )}
+
+                  <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
+
+                </div>
+
               </li>
+
             ))}
-            {filtered.length === 0 && !loading && <p style={{ textAlign: "center", opacity: 0.5 }}>No hay tareas</p>}
+
           </ul>
+
         )}
+
       </main>
 
-      <button className="config-toggle" onClick={() => setIsSidebarOpen(true)}>🎨</button>
-      <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-header">
-          <h3>Apariencia</h3>
-          <button onClick={() => setIsSidebarOpen(false)}>✕</button>
-        </div>
-        <div className="config-section">
-          <h4>Fondo</h4>
-          <button onClick={() => updateTheme({ background: "#0b0d10", mainColor: "#e7eaee" })}>Noche</button>
-          <button onClick={() => updateTheme({ background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6" })}>Claro</button>
-        </div>
-        <div className="config-section">
-          <h4>Color de Acento</h4>
-          <input type="color" value={theme.accentColor} onChange={e => updateTheme({ accentColor: e.target.value })} />
-        </div>
-      </aside>
     </div>
+
   );
+
 }
