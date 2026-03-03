@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, setAuth } from "../api";
-// Importaciones separadas correctamente para evitar errores de "no exported member"
 import { cacheTasks, getAllTasksLocal, putTaskLocal, removeTaskLocal, queue } from "../offline/db";
 import { syncNow, setupOnlineSync } from "../offline/sync";
 
@@ -41,7 +40,6 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [online, setOnline] = useState<boolean>(navigator.onLine);
 
-  // --- LÓGICA DE TEMAS (Aislada para no romper nada) ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("user-theme");
@@ -64,7 +62,6 @@ export default function Dashboard() {
     localStorage.setItem("user-theme", JSON.stringify(theme));
   }, [theme]);
 
-  // --- EFECTOS INICIALES ---
   useEffect(() => {
     setAuth(localStorage.getItem("token"));
     const unsubscribe = setupOnlineSync();
@@ -96,7 +93,6 @@ export default function Dashboard() {
     } catch { } finally { setLoading(false); }
   }
 
-  // --- MANEJO DE TAREAS ---
   async function addTask(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
@@ -179,45 +175,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-<form className="add-grid" onSubmit={addTask}>
-    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Qué hay que hacer?" />
-    <button className="btn">Agregar</button>
-    <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)..." rows={2} />
-  </form>
+        {loading ? (
+          <p style={{ textAlign: 'center', opacity: 0.6 }}>Cargando tareas...</p>
+        ) : (
+          <ul className="list">
+            {filtered.map(t => (
+              <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
+                <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="En Progreso">En Progreso</option>
+                  <option value="Completada">Completada</option>
+                </select>
+                <div className="content">
+                  <span className="title">{t.title}</span>
+                  {t.description && <p className="desc">{t.description}</p>}
+                </div>
+                <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
+              </li>
+            ))}
+            {filtered.length === 0 && <p style={{ textAlign: 'center', opacity: 0.5 }}>No hay tareas</p>}
+          </ul>
+        )}
+      </main>
 
-  <div className="toolbar">
-    <input className="search" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
-    <div className="filters">
-      <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
-      <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
-    </div>
-  </div>
-
-  {/* AQUÍ USAMOS LA VARIABLE 'loading' PARA QUE VERCEL NO SE QUEJE */}
-  {loading ? (
-    <p style={{ textAlign: 'center', opacity: 0.6 }}>Cargando tareas...</p>
-  ) : (
-    <ul className="list">
-      {filtered.map(t => (
-        <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
-          <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
-            <option value="Pendiente">Pendiente</option>
-            <option value="En Progreso">En Progreso</option>
-            <option value="Completada">Completada</option>
-          </select>
-          <div className="content">
-            <span className="title">{t.title}</span>
-            {t.description && <p className="desc">{t.description}</p>}
-          </div>
-          <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
-        </li>
-      ))}
-      {filtered.length === 0 && <p style={{ textAlign: 'center', opacity: 0.5 }}>No hay tareas</p>}
-    </ul>
-  )}
-</main>
-
-      {/* BARRA DE APARIENCIA */}
       <button className="config-toggle" onClick={() => setIsSidebarOpen(true)}>🎨</button>
       <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
@@ -226,8 +206,8 @@ export default function Dashboard() {
         </div>
         <div className="config-section">
           <h4>Fondo</h4>
-          <button onClick={() => setTheme({...theme, background: "#0b0d10", mainColor: "#e7eaee"})}>Noche</button>
-          <button onClick={() => setTheme({...theme, background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6"})}>Claro</button>
+          <button className="config-btn" onClick={() => setTheme({...theme, background: "#0b0d10", mainColor: "#e7eaee"})}>Noche</button>
+          <button className="config-btn" onClick={() => setTheme({...theme, background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6"})}>Claro</button>
         </div>
         <div className="config-section">
           <h4>Color de Acento</h4>

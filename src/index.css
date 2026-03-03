@@ -1,31 +1,49 @@
 /* =========================================
-   1. VARIABLES Y CONFIGURACIÓN BASE
+   1. VARIABLES DINÁMICAS (Para el Tema)
    ========================================= */
 :root { 
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif; 
   --main-bg: #0b0d10;
   --main-color: #e7eaee;
   --accent-color: #1f6feb;
-  --card-bg: #0e1217;
-  --input-bg: #11151a;
-  --border-color: #2a2f36;
   --main-font-size: 16px;
 }
 
+/* =========================================
+   2. TU ESTILO ORIGINAL (Login y Base)
+   ========================================= */
 * { box-sizing: border-box; }
 
 body { 
   margin: 0; 
   background: var(--main-bg); 
   color: var(--main-color); 
-  font-family: var(--font-family);
+  font-family: Inter, system-ui, sans-serif;
   font-size: var(--main-font-size);
-  transition: background 0.3s ease, color 0.3s ease;
-  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Arreglo para tu Login (Imagen del panqué) */
+.login-container img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Estilo para tus inputs que se veían mal */
+input, textarea, select {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #11151a;
+  border: 1px solid #2a2f36;
+  color: white;
+  border-radius: 8px;
 }
 
 /* =========================================
-   2. ESTRUCTURA DASHBOARD
+   3. ESTRUCTURA DEL DASHBOARD (Corregida)
    ========================================= */
 .wrap { 
   max-width: 800px; 
@@ -33,175 +51,63 @@ body {
   padding: 20px; 
 }
 
+/* Alineación de la barra superior */
 .topbar { 
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
-.topbar h1 { font-size: 1.5rem; margin: 0; font-weight: 700; }
-
-.connection-status {
+/* Cuadrícula para agregar tareas (para que no se amontonen) */
+.add-grid {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 20px;
-  font-size: 12px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-/* =========================================
-   3. FORMULARIO DE AGREGAR (CORREGIDO)
-   ========================================= */
-.add-grid { 
-  display: grid; 
-  grid-template-columns: 1fr auto; 
-  gap: 12px; 
-  margin-bottom: 30px;
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-}
-
-.add-grid input, .add-grid textarea {
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  color: var(--main-color);
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.add-grid textarea { 
-  grid-column: 1 / span 2; 
-  resize: none;
-}
-
-/* =========================================
-   4. TOOLBAR Y FILTROS
-   ========================================= */
-.toolbar { 
-  display: flex; 
   flex-direction: column;
-  gap: 15px; 
-  margin-bottom: 20px; 
+  gap: 10px;
+  margin-bottom: 25px;
 }
 
-.search {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--main-color);
+.add-grid .row {
+  display: flex;
+  gap: 10px;
 }
 
-.filters { display: flex; gap: 10px; }
-
-.chip { 
-  padding: 6px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--main-color);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-}
-
-.chip.active { 
-  background: var(--accent-color);
-  border-color: var(--accent-color);
-  color: white;
-}
-
-/* =========================================
-   5. LISTA DE TAREAS
-   ========================================= */
-.list { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 12px; 
+/* Lista de tareas en vertical */
+.list {
+  list-style: none;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.item { 
+.item {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: var(--card-bg); 
-  border: 1px solid var(--border-color); 
-  padding: 15px; 
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
   border-radius: 12px;
-}
-
-.status-select {
-  padding: 5px;
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--main-color);
-  border: 1px solid var(--border-color);
+  border: 1px solid #2a2f36;
 }
 
 .content { flex: 1; }
-.content .title { display: block; font-weight: 600; margin-bottom: 4px; }
-.content .desc { margin: 0; font-size: 13px; opacity: 0.6; }
-
-.item.done .title { text-decoration: line-through; opacity: 0.5; }
 
 /* =========================================
-   6. BOTONES Y ACCIONES
-   ========================================= */
-.btn { 
-  background: var(--accent-color); 
-  color: white; 
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.btn.danger { background: #e03131; }
-
-.icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 5px;
-  transition: background 0.2s;
-}
-
-.icon:hover { background: rgba(255,255,255,0.1); }
-
-/* =========================================
-   7. BARRA DE PERSONALIZACIÓN (AJUSTADA)
+   4. BARRA DE APARIENCIA (ESTILO WIKIPEDIA)
    ========================================= */
 .config-toggle {
   position: fixed;
-  bottom: 25px;
-  right: 25px;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  border-radius: 50%;
   width: 50px;
   height: 50px;
-  border-radius: 25px;
   background: var(--accent-color);
   color: white;
   border: none;
   cursor: pointer;
-  font-size: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .config-sidebar {
@@ -209,33 +115,30 @@ body {
   top: 0;
   right: -300px;
   width: 280px;
-  height: 100vh;
+  height: 100%;
   background: #161b22;
-  border-left: 1px solid var(--border-color);
-  padding: 25px;
+  border-left: 1px solid #30363d;
+  padding: 20px;
   transition: 0.3s;
   z-index: 2000;
+  color: white;
 }
 
 .config-sidebar.open { right: 0; }
 
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
+.config-section { margin-bottom: 20px; }
+.config-section h4 { font-size: 12px; color: #8b949e; text-transform: uppercase; }
 
-.config-section { margin-bottom: 25px; }
-.config-section h4 { font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; }
-.config-section button {
+/* Botones dentro de la barra */
+.config-btn {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 8px;
+  padding: 8px;
+  margin-top: 5px;
   background: #21262d;
-  border: 1px solid var(--border-color);
   color: white;
+  border: 1px solid #30363d;
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
 }
+.config-btn:hover { border-color: var(--accent-color); }
