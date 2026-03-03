@@ -30,12 +30,7 @@ function normalizeTask(x: any): Task {
     _id: String(x?._id ?? x?.id),
     title: String(x?.title ?? "(sin título)"),
     description: x?.description ?? "",
-    status:
-      x?.status === "Completada" ||
-      x?.status === "En Progreso" ||
-      x?.status === "Pendiente"
-        ? x.status
-        : "Pendiente",
+    status: ["Pendiente", "En Progreso", "Completada"].includes(x?.status) ? x.status : "Pendiente",
     clienteId: x?.clienteId,
     createdAt: x?.createdAt,
     deleted: !!x?.deleted,
@@ -44,6 +39,7 @@ function normalizeTask(x: any): Task {
 }
 
 export default function Dashboard() {
+  // --- ESTADOS DE TAREAS ---
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
@@ -55,7 +51,7 @@ export default function Dashboard() {
   const [editingDescription, setEditingDescription] = useState("");
   const [online, setOnline] = useState<boolean>(navigator.onLine);
 
-  // 1. NUEVO: Estados para personalización y barra lateral
+  // --- ESTADOS DE PERSONALIZACIÓN ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("user-theme");
@@ -63,36 +59,32 @@ export default function Dashboard() {
       fontSize: "16px",
       fontFamily: "Inter, sans-serif",
       accentColor: "#1f6feb",
-      background: "#0b0d10"
+      background: "#0b0d10",
+      mainColor: "#e7eaee"
     };
   });
 
-  // 2. NUEVO: Efecto para aplicar cambios visuales y persistencia
+  // --- MOTOR DE TEMA (APLICAR CAMBIOS) ---
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--main-bg", theme.background);
     root.style.setProperty("--accent-color", theme.accentColor);
     root.style.setProperty("--font-family", theme.fontFamily);
     root.style.setProperty("--main-font-size", theme.fontSize);
-    
+    root.style.setProperty("--main-color", theme.mainColor);
     localStorage.setItem("user-theme", JSON.stringify(theme));
   }, [theme]);
 
-  const updateTheme = (key: string, value: string) => {
-    setTheme((prev: any) => ({ ...prev, [key]: value }));
+  const updateTheme = (updates: Partial<typeof theme>) => {
+    setTheme((prev) => ({ ...prev, ...updates }));
   };
 
+  // --- LÓGICA DE SINCRONIZACIÓN Y CARGA ---
   useEffect(() => {
     setAuth(localStorage.getItem("token"));
     const unsubscribe = setupOnlineSync();
-
-    const on = async () => {
-      setOnline(true);
-      await syncNow();
-      await loadFromServer();
-    };
+    const on = async () => { setOnline(true); await syncNow(); await loadFromServer(); };
     const off = () => setOnline(false);
-    
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
 
@@ -104,32 +96,25 @@ export default function Dashboard() {
       await loadFromServer();
     })();
 
-    return () => {
-      unsubscribe?.();
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
+    return () => { unsubscribe?.(); window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
 
-  // ... (Tus funciones addTask, saveEdit, handleStatusChange, removeTask y logout se mantienen igual)
   async function loadFromServer() {
     try {
       const { data } = await api.get("/tasks");
-      const raw = Array.isArray(data?.items) ? data.items : [];
-      const list = raw.map(normalizeTask);
+      const list = (Array.isArray(data?.items) ? data.items : []).map(normalizeTask);
       setTasks(list);
       await cacheTasks(list);
-    } catch { /* Error silencioso */ } finally { setLoading(false); }
+    } catch { } finally { setLoading(false); }
   }
 
+  // --- MANEJO DE TAREAS ---
   async function addTask(e: React.FormEvent) {
     e.preventDefault();
-    const t = title.trim();
-    const d = description.trim();
-    if (!t) return;
+    if (!title.trim()) return;
     const clienteId = crypto.randomUUID();
-    const localTask = normalizeTask({ _id: clienteId, title: t, description: d, status: "Pendiente" as Status, pending: !navigator.onLine });
-    setTasks((prev) => [localTask, ...prev]);
+    const localTask = normalizeTask({ _id: clienteId, title, description, status: "Pendiente", pending: !navigator.onLine });
+    setTasks(prev => [localTask, ...prev]);
     await putTaskLocal(localTask);
     setTitle(""); setDescription("");
     if (!navigator.onLine) {
@@ -137,90 +122,52 @@ export default function Dashboard() {
       return;
     }
     try {
-      const { data } = await api.post("/tasks", { title: t, description: d });
+      const { data } = await api.post("/tasks", { title: localTask.title, description: localTask.description });
       const created = normalizeTask(data?.task ?? data);
-      setTasks((prev) => prev.map((x) => (x._id === clienteId ? created : x)));
+      setTasks(prev => prev.map(x => x._id === clienteId ? created : x));
       await putTaskLocal(created);
     } catch {
       await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
     }
   }
 
-  function startEdit(task: Task) {
-    setEditingId(task._id);
-    setEditingTitle(task.title);
-    setEditingDescription(task.description ?? "");
-  }
-
-  async function saveEdit(taskId: string) {
-    const newTitle = editingTitle.trim();
-    const newDesc = editingDescription.trim();
-    if (!newTitle) return;
-    const before = tasks.find((t) => t._id === taskId);
-    const patched = { ...before, title: newTitle, description: newDesc } as Task;
-    setTasks((prev) => prev.map((t) => (t._id === taskId ? patched : t)));
-    await putTaskLocal(patched);
-    setEditingId(null);
-    const opData = { title: newTitle, description: newDesc };
-    if (!navigator.onLine) {
-      await queue({ id: "upd-" + taskId, op: "update", clienteId: isLocalId(taskId) ? taskId : undefined, serverId: isLocalId(taskId) ? undefined : taskId, data: opData, ts: Date.now() } as OutboxOp);
-      return;
-    }
-    try { await api.put(`/tasks/${taskId}`, opData); } 
-    catch { await queue({ id: "upd-" + taskId, op: "update", serverId: taskId, data: opData, ts: Date.now() } as OutboxOp); }
-  }
-
   async function handleStatusChange(task: Task, newStatus: Status) {
     const updated = { ...task, status: newStatus };
-    setTasks((prev) => prev.map((x) => (x._id === task._id ? updated : x)));
+    setTasks(prev => prev.map(x => x._id === task._id ? updated : x));
     await putTaskLocal(updated);
-    const opData = { status: newStatus };
     if (!navigator.onLine) {
-      await queue({ id: "upd-" + task._id, op: "update", serverId: isLocalId(task._id) ? undefined : task._id, clienteId: isLocalId(task._id) ? task._id : undefined, data: opData, ts: Date.now() });
+      await queue({ id: "upd-" + task._id, op: "update", serverId: isLocalId(task._id) ? undefined : task._id, clienteId: isLocalId(task._id) ? task._id : undefined, data: { status: newStatus }, ts: Date.now() });
       return;
     }
-    try { await api.put(`/tasks/${task._id}`, opData); } 
-    catch { await queue({ id: "upd-" + task._id, op: "update", serverId: task._id, data: opData, ts: Date.now() }); }
+    try { await api.put(`/tasks/${task._id}`, { status: newStatus }); } 
+    catch { await queue({ id: "upd-" + task._id, op: "update", serverId: task._id, data: { status: newStatus }, ts: Date.now() }); }
   }
 
   async function removeTask(taskId: string) {
-    const backup = tasks;
-    setTasks((prev) => prev.filter((t) => t._id !== taskId));
+    setTasks(prev => prev.filter(t => t._id !== taskId));
     await removeTaskLocal(taskId);
     if (!navigator.onLine) {
       await queue({ id: "del-" + taskId, op: "delete", serverId: isLocalId(taskId) ? undefined : taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
       return;
     }
-    try { await api.delete(`/tasks/${taskId}`); } 
-    catch {
-      setTasks(backup);
-      for (const t of backup) await putTaskLocal(t);
-      await queue({ id: "del-" + taskId, op: "delete", serverId: taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
-    }
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    setAuth(null);
-    window.location.href = "/";
+    try { await api.delete(`/tasks/${taskId}`); } catch { }
   }
 
   const filtered = useMemo(() => {
     let list = tasks;
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter((t) => (t.title || "").toLowerCase().includes(s) || (t.description || "").toLowerCase().includes(s));
+      list = list.filter(t => t.title.toLowerCase().includes(s) || (t.description || "").toLowerCase().includes(s));
     }
-    if (filter === "active") list = list.filter((t) => t.status !== "Completada");
-    if (filter === "completed") list = list.filter((t) => t.status === "Completada");
+    if (filter === "active") list = list.filter(t => t.status !== "Completada");
+    if (filter === "completed") list = list.filter(t => t.status === "Completada");
     return list;
   }, [tasks, search, filter]);
 
-  const stats = useMemo(() => {
-    const total = tasks.length;
-    const done = tasks.filter((t) => t.status === "Completada").length;
-    return { total, done, pending: total - done };
-  }, [tasks]);
+  const stats = useMemo(() => ({
+    total: tasks.length,
+    done: tasks.filter(t => t.status === "Completada").length
+  }), [tasks]);
 
   return (
     <div className="wrap">
@@ -228,78 +175,44 @@ export default function Dashboard() {
         <h1>To-Do PWA</h1>
         <div className="spacer" />
         <div className="stats">
-          <span>Total: <b>{stats.total}</b></span>
-          <span>Hechas: <b>{stats.done}</b></span>
-          
-          <div className="connection-status" title={online ? "Conectado" : "Desconectado"}>
-            <span 
-              className="status-dot" 
-              style={{ backgroundColor: online ? "#22c55e" : "#ef4444", boxShadow: `0 0 8px ${online ? "#22c55e" : "#ef4444"}` }} 
-            />
-            <span style={{ color: online ? "#22c55e" : "#ef4444", fontWeight: "bold", fontSize: "0.85rem" }}>
-              {online ? "EN LÍNEA" : "SIN RED"}
-            </span>
+          <span>{stats.done}/{stats.total} completadas</span>
+          <div className="connection-status">
+            <span className="status-dot" style={{ backgroundColor: online ? "#22c55e" : "#ef4444" }} />
+            <small>{online ? "ONLINE" : "OFFLINE"}</small>
           </div>
-
-          <button className="btn danger" onClick={logout}>Salir</button>
+          <button className="btn danger" onClick={() => { localStorage.removeItem("token"); window.location.href="/"; }}>Salir</button>
         </div>
       </header>
 
       <main>
-        <form className="add add-grid" onSubmit={addTask}>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título de la tarea…" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descripción (opcional)…" rows={2} />
+        <form className="add-grid" onSubmit={addTask}>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Qué hay que hacer?" />
           <button className="btn">Agregar</button>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción adicional..." rows={2} />
         </form>
 
         <div className="toolbar">
-          <input className="search" placeholder="Buscar por título o descripción…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="search" placeholder="Buscar tareas..." value={search} onChange={e => setSearch(e.target.value)} />
           <div className="filters">
-            <button className={filter === "all" ? "chip active" : "chip"} onClick={() => setFilter("all")}>Todas</button>
-            <button className={filter === "active" ? "chip active" : "chip"} onClick={() => setFilter("active")}>Activas</button>
-            <button className={filter === "completed" ? "chip active" : "chip"} onClick={() => setFilter("completed")}>Hechas</button>
+            <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
+            <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
           </div>
         </div>
 
-        {loading ? (
-          <p style={{ color: "white", textAlign: "center", marginTop: "2rem" }}>Cargando tareas...</p>
-        ) : filtered.length === 0 ? (
-          <p className="empty">Sin tareas</p>
-        ) : (
+        {loading ? <p style={{textAlign:'center'}}>Cargando...</p> : (
           <ul className="list">
-            {filtered.map((t) => (
-              <li key={t._id} className={t.status === "Completada" ? "item done" : "item"}>
-                <select value={t.status} onChange={(e) => handleStatusChange(t, e.target.value as Status)} className="status-select">
+            {filtered.map(t => (
+              <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
+                <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
                   <option value="Pendiente">Pendiente</option>
                   <option value="En Progreso">En Progreso</option>
                   <option value="Completada">Completada</option>
                 </select>
-
                 <div className="content">
-                  {editingId === t._id ? (
-                    <>
-                      <input className="edit" value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} autoFocus />
-                      <textarea className="edit" value={editingDescription} onChange={(e) => setEditingDescription(e.target.value)} rows={2} />
-                    </>
-                  ) : (
-                    <>
-                      <span className="title" onDoubleClick={() => startEdit(t)}>{t.title}</span>
-                      {t.description && <p className="desc">{t.description}</p>}
-                      {(t.pending || isLocalId(t._id)) && (
-                        <span className="badge" style={{ background: "#b45309", width: "fit-content", marginTop: "5px" }}>
-                          Falta sincronizar
-                        </span>
-                      )}
-                    </>
-                  )}
+                  <span className="title">{t.title}</span>
+                  {t.description && <p className="desc">{t.description}</p>}
                 </div>
-
                 <div className="actions">
-                  {editingId === t._id ? (
-                    <button className="btn" onClick={() => saveEdit(t._id)}>Guardar</button>
-                  ) : (
-                    <button className="icon" onClick={() => startEdit(t)}>✏️</button>
-                  )}
                   <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
                 </div>
               </li>
@@ -308,71 +221,40 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* 3. NUEVO: Componentes de Personalización */}
-      <button 
-        className="config-toggle" 
-        onClick={() => setIsSidebarOpen(true)}
-        style={{ background: theme.accentColor }}
-      >
-        🎨
-      </button>
-
-      <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-header">
-          <h3>Apariencia</h3>
-          <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
-        </div>
-
-        <div className="config-section">
-          <h4>Tipografía</h4>
-          <select 
-            value={theme.fontFamily} 
-            onChange={(e) => updateTheme("fontFamily", e.target.value)}
-            className="status-select"
-            style={{ width: '100%' }}
-          >
-            <option value="Inter, sans-serif">Moderna (Inter)</option>
-            <option value="'Playfair Display', serif">Elegante (Serif)</option>
-            <option value="'JetBrains Mono', monospace">Código (Mono)</option>
-          </select>
-        </div>
-
-        <div className="config-section">
-          <h4>Tamaño de letra</h4>
-          <div className="filters">
-            <button className={theme.fontSize === '14px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '14px')}>Pequeño</button>
-            <button className={theme.fontSize === '16px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '16px')}>Normal</button>
-            <button className={theme.fontSize === '20px' ? 'chip active' : 'chip'} onClick={() => updateTheme('fontSize', '20px')}>Grande</button>
+      {/* COMPONENTE DE PERSONALIZACIÓN */}
+      <div className="config-container">
+        <button className="config-toggle" onClick={() => setIsSidebarOpen(true)}>🎨</button>
+        <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
+          <div className="sidebar-header">
+            <h3>Apariencia</h3>
+            <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
           </div>
-        </div>
 
-        <div className="config-section">
-          <h4>Fondo</h4>
-          <div className="options-grid">
-            <button onClick={() => updateTheme("background", "#0b0d10")}>Noche</button>
-            <button onClick={() => updateTheme("background", "#1a202c")}>Azul Gris</button>
-            <button onClick={() => updateTheme("background", "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)")}>Gradiente</button>
-            <button 
-            onClick={() => { 
-            updateTheme("background", "#f8fafc"); 
-            updateTheme("accentColor", "#3b82f6");
-            updateTheme("mainColor", "#1a202c"); // Un gris oscuro para que sea legible 
-            }}
-              >
-              Claro
-              </button>          </div>
-        </div>
+          <div className="config-section">
+            <h4>Tipografía</h4>
+            <select value={theme.fontFamily} onChange={e => updateTheme({ fontFamily: e.target.value })} className="status-select">
+              <option value="Inter, sans-serif">Moderna</option>
+              <option value="'JetBrains Mono', monospace">Monoespacio</option>
+              <option value="serif">Elegante</option>
+            </select>
+          </div>
 
-        <div className="config-section">
-          <h4>Color de acento</h4>
-          <input 
-            type="color" 
-            value={theme.accentColor} 
-            onChange={(e) => updateTheme("accentColor", e.target.value)} 
-            style={{ width: '100%', height: '40px', cursor: 'pointer', border: 'none', borderRadius: '8px' }}
-          />
-        </div>
-      </aside>
+          <div className="config-section">
+            <h4>Fondo</h4>
+            <div className="options-grid">
+              <button onClick={() => updateTheme({ background: "#0b0d10", mainColor: "#e7eaee" })}>Noche</button>
+              <button onClick={() => updateTheme({ background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6" })}>Claro</button>
+              <button onClick={() => updateTheme({ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", mainColor: "#ffffff" })}>Púrpura</button>
+              <button onClick={() => updateTheme({ background: "#1a202c", mainColor: "#e2e8f0" })}>Gris</button>
+            </div>
+          </div>
+
+          <div className="config-section">
+            <h4>Color de Acento</h4>
+            <input type="color" value={theme.accentColor} onChange={e => updateTheme({ accentColor: e.target.value })} style={{width:'100%', height:'40px', border:'none', borderRadius:'8px'}} />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
