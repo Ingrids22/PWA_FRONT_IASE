@@ -2,7 +2,7 @@
    1. VARIABLES Y CONFIGURACIÓN BASE
    ========================================= */
 :root { 
-  --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; 
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif; 
   --main-bg: #0b0d10;
   --main-color: #e7eaee;
   --accent-color: #1f6feb;
@@ -20,185 +20,222 @@ body {
   color: var(--main-color); 
   font-family: var(--font-family);
   font-size: var(--main-font-size);
-  background-size: cover;
-  background-attachment: fixed;
-  transition: background 0.3s ease, font-size 0.2s ease, color 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
   min-height: 100vh;
 }
 
 /* =========================================
    2. ESTRUCTURA DASHBOARD
    ========================================= */
-.wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+.wrap { 
+  max-width: 800px; 
+  margin: 0 auto; 
+  padding: 20px; 
+}
 
-.topbar { display: flex; align-items: center; gap: 12px; padding: 1rem 0; }
-.topbar h1 { font-size: 20px; margin: 0; }
-.spacer { flex: 1; }
+.topbar { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 30px;
+}
 
-.stats { display: flex; gap: 12px; font-size: 14px; align-items: center; }
+.topbar h1 { font-size: 1.5rem; margin: 0; font-weight: 700; }
 
 .connection-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px;
-  background: rgba(0,0,0,0.2);
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.05);
   border-radius: 20px;
+  font-size: 12px;
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
 }
 
 /* =========================================
-   3. FORMULARIOS Y BOTONES
+   3. FORMULARIO DE AGREGAR (CORREGIDO)
+   ========================================= */
+.add-grid { 
+  display: grid; 
+  grid-template-columns: 1fr auto; 
+  gap: 12px; 
+  margin-bottom: 30px;
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.add-grid input, .add-grid textarea {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--main-color);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.add-grid textarea { 
+  grid-column: 1 / span 2; 
+  resize: none;
+}
+
+/* =========================================
+   4. TOOLBAR Y FILTROS
+   ========================================= */
+.toolbar { 
+  display: flex; 
+  flex-direction: column;
+  gap: 15px; 
+  margin-bottom: 20px; 
+}
+
+.search {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--main-color);
+}
+
+.filters { display: flex; gap: 10px; }
+
+.chip { 
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--main-color);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.chip.active { 
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+/* =========================================
+   5. LISTA DE TAREAS
+   ========================================= */
+.list { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  padding: 0;
+}
+
+.item { 
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: var(--card-bg); 
+  border: 1px solid var(--border-color); 
+  padding: 15px; 
+  border-radius: 12px;
+}
+
+.status-select {
+  padding: 5px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--main-color);
+  border: 1px solid var(--border-color);
+}
+
+.content { flex: 1; }
+.content .title { display: block; font-weight: 600; margin-bottom: 4px; }
+.content .desc { margin: 0; font-size: 13px; opacity: 0.6; }
+
+.item.done .title { text-decoration: line-through; opacity: 0.5; }
+
+/* =========================================
+   6. BOTONES Y ACCIONES
    ========================================= */
 .btn { 
   background: var(--accent-color); 
   color: white; 
-  border: 0; 
-  padding: 8px 14px; 
-  border-radius: 10px; 
-  cursor: pointer; 
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
   font-weight: 600;
-  transition: filter 0.2s;
-}
-.btn:hover { filter: brightness(1.2); }
-.btn.danger { background: #d83a3a; }
-
-.icon { background: transparent; border: 0; cursor: pointer; font-size: 18px; padding: 4px; }
-.icon.danger { color: #ff6b6b; }
-
-.add-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 20px; }
-.add-grid textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
-
-.search, .add input, .add-grid textarea, .status-select, .edit {
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--main-color);
-  padding: 10px 12px;
-  border-radius: 10px;
-  outline: none;
-  width: 100%;
 }
 
-.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 15px; }
-.filters { display: flex; gap: 8px; }
+.btn.danger { background: #e03131; }
 
-.chip { 
-  background: var(--input-bg); 
-  border: 1px solid var(--border-color); 
-  color: var(--main-color); 
-  padding: 6px 12px; 
-  border-radius: 999px; 
-  cursor: pointer; 
-  font-size: 13px;
+.icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  transition: background 0.2s;
 }
-.chip.active { border-color: var(--accent-color); background: rgba(31, 111, 235, 0.1); color: white; }
+
+.icon:hover { background: rgba(255,255,255,0.1); }
 
 /* =========================================
-   4. LISTA DE TAREAS
+   7. BARRA DE PERSONALIZACIÓN (AJUSTADA)
    ========================================= */
-.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-
-.item { 
-  display: grid; 
-  grid-template-columns: 160px 1fr auto; 
-  align-items: center; 
-  gap: 12px;
-  background: var(--card-bg); 
-  border: 1px solid var(--border-color); 
-  padding: 12px; 
-  border-radius: 12px; 
-}
-
-.item.done { opacity: 0.7; }
-.item.done .title { text-decoration: line-through; }
-
-.content { display: grid; gap: 4px; }
-.title { font-weight: 600; }
-.desc { margin: 0; font-size: 13px; opacity: 0.8; }
-.badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
-
-/* =========================================
-   5. BARRA DE PERSONALIZACIÓN (AISLADA)
-   ========================================= */
-.config-container .config-toggle {
+.config-toggle {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  bottom: 25px;
+  right: 25px;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
   background: var(--accent-color);
   color: white;
   border: none;
   cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-.config-container .config-sidebar {
+.config-sidebar {
   position: fixed;
   top: 0;
-  right: -320px;
-  width: 300px;
+  right: -300px;
+  width: 280px;
   height: 100vh;
-  background: #0f1318;
-  border-left: 1px solid #1b2027;
-  padding: 24px;
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  color: white;
-  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  background: #161b22;
+  border-left: 1px solid var(--border-color);
+  padding: 25px;
+  transition: 0.3s;
+  z-index: 2000;
 }
 
-.config-container .config-sidebar.open { right: 0; }
+.config-sidebar.open { right: 0; }
 
-.config-container .sidebar-header {
+.sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 15px;
+  margin-bottom: 30px;
 }
 
-.config-container .close-btn { background: transparent; border: 0; color: white; cursor: pointer; font-size: 20px; }
-
-.config-container .config-section h4 { 
-  font-size: 12px; 
-  color: #9aa7b2; 
-  text-transform: uppercase; 
-  margin: 0 0 12px 0; 
-  letter-spacing: 1px;
-}
-
-.config-container .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-.config-container .options-grid button {
-  background: #1c2128;
-  border: 1px solid #2d333b;
-  color: white;
+.config-section { margin-bottom: 25px; }
+.config-section h4 { font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; }
+.config-section button {
+  width: 100%;
   padding: 10px;
-  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #21262d;
+  border: 1px solid var(--border-color);
+  color: white;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
-}
-
-.config-container .options-grid button:hover { border-color: var(--accent-color); }
-
-@media (max-width: 600px) {
-  .item { grid-template-columns: 1fr auto; }
-  .status-select { grid-column: 1 / -1; width: 100%; order: 3; }
-  .stats { display: none; }
+  text-align: left;
 }
