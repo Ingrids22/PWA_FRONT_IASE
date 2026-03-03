@@ -1,144 +1,130 @@
 /* =========================================
-   1. VARIABLES DINÁMICAS (Para el Tema)
+   1. VARIABLES Y CONFIGURACIÓN BASE
    ========================================= */
 :root { 
+  --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif; 
   --main-bg: #0b0d10;
   --main-color: #e7eaee;
   --accent-color: #1f6feb;
-  --main-font-size: 16px;
+  --card-bg: #0e1217;
+  --input-bg: #11151a;
+  --border-color: #2a2f36;
 }
 
-/* =========================================
-   2. TU ESTILO ORIGINAL (Login y Base)
-   ========================================= */
 * { box-sizing: border-box; }
 
 body { 
   margin: 0; 
   background: var(--main-bg); 
   color: var(--main-color); 
-  font-family: Inter, system-ui, sans-serif;
-  font-size: var(--main-font-size);
-  transition: background 0.3s, color 0.3s;
-}
-
-/* Arreglo para tu Login (Imagen del panqué) */
-.login-container img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 0 auto;
-}
-
-/* Estilo para tus inputs que se veían mal */
-input, textarea, select {
-  display: block;
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 10px;
-  background: #11151a;
-  border: 1px solid #2a2f36;
-  color: white;
-  border-radius: 8px;
+  font-family: var(--font-family);
+  background-size: cover;
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
 /* =========================================
-   3. ESTRUCTURA DEL DASHBOARD (Corregida)
+   2. ESTRUCTURA DASHBOARD
    ========================================= */
-.wrap { 
-  max-width: 800px; 
-  margin: 0 auto; 
-  padding: 20px; 
-}
+.wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
 
-/* Alineación de la barra superior */
-.topbar { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 20px;
-}
+.topbar { display: flex; align-items: center; gap: 12px; padding: 1rem 0; }
+.topbar h1 { font-size: 20px; margin: 0; }
+.spacer { flex: 1; }
 
-/* Cuadrícula para agregar tareas (para que no se amontonen) */
-.add-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 25px;
-}
+.stats { display: flex; gap: 12px; font-size: 14px; align-items: center; }
 
-.add-grid .row {
-  display: flex;
-  gap: 10px;
-}
-
-/* Lista de tareas en vertical */
-.list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.item {
+.connection-status {
   display: flex;
   align-items: center;
-  gap: 15px;
-  background: rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid #2a2f36;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 20px;
 }
 
-.content { flex: 1; }
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
 
 /* =========================================
-   4. BARRA DE APARIENCIA (ESTILO WIKIPEDIA)
+   3. FORMULARIOS Y BOTONES (LOGIN Y DASH)
    ========================================= */
-.config-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  cursor: pointer;
+.btn { 
+  background: var(--accent-color); 
+  color: white; 
+  border: 0; 
+  padding: 8px 14px; 
+  border-radius: 10px; 
+  cursor: pointer; 
+  font-weight: 600;
+  transition: filter 0.2s;
 }
+.btn:hover { filter: brightness(1.2); }
+.btn.danger { background: #d83a3a; }
 
-.config-sidebar {
-  position: fixed;
-  top: 0;
-  right: -300px;
-  width: 280px;
-  height: 100%;
-  background: #161b22;
-  border-left: 1px solid #30363d;
-  padding: 20px;
-  transition: 0.3s;
-  z-index: 2000;
-  color: white;
-}
+.icon { background: transparent; border: 0; cursor: pointer; font-size: 18px; padding: 4px; }
+.icon.danger { color: #ff6b6b; }
 
-.config-sidebar.open { right: 0; }
+.add-grid { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 20px; }
+.add-grid textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
 
-.config-section { margin-bottom: 20px; }
-.config-section h4 { font-size: 12px; color: #8b949e; text-transform: uppercase; }
-
-/* Botones dentro de la barra */
-.config-btn {
+.search, .add input, .add-grid textarea, .status-select, .edit {
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--main-color);
+  padding: 10px 12px;
+  border-radius: 10px;
+  outline: none;
   width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  background: #21262d;
-  color: white;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: left;
 }
-.config-btn:hover { border-color: var(--accent-color); }
+
+.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 15px; }
+.filters { display: flex; gap: 8px; }
+
+.chip { 
+  background: var(--input-bg); 
+  border: 1px solid var(--border-color); 
+  color: var(--main-color); 
+  padding: 6px 12px; 
+  border-radius: 999px; 
+  cursor: pointer; 
+  font-size: 13px;
+}
+.chip.active { border-color: var(--accent-color); background: rgba(31, 111, 235, 0.1); color: white; }
+
+/* =========================================
+   4. LISTA DE TAREAS
+   ========================================= */
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+
+.item { 
+  display: grid; 
+  grid-template-columns: 160px 1fr auto; 
+  align-items: center; 
+  gap: 12px;
+  background: var(--card-bg); 
+  border: 1px solid var(--border-color); 
+  padding: 12px; 
+  border-radius: 12px; 
+}
+
+.item.done { opacity: 0.7; }
+.item.done .title { text-decoration: line-through; }
+
+.content { display: grid; gap: 4px; }
+.title { font-weight: 600; }
+.desc { margin: 0; font-size: 13px; opacity: 0.8; }
+.badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+
+/* =========================================
+   5. RESPONSIVE
+   ========================================= */
+@media (max-width: 600px) {
+  .item { grid-template-columns: 1fr auto; }
+  .status-select { grid-column: 1 / -1; width: 100%; order: 3; }
+  .stats { display: none; }
+}

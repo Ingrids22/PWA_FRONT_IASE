@@ -62,6 +62,11 @@ export default function Dashboard() {
     localStorage.setItem("user-theme", JSON.stringify(theme));
   }, [theme]);
 
+  // CORRECCIÓN PARA VERCEL: Tipo explícito para 'prev'
+  const updateTheme = (updates: Partial<typeof theme>) => {
+    setTheme((prev: typeof theme) => ({ ...prev, ...updates }));
+  };
+
   useEffect(() => {
     setAuth(localStorage.getItem("token"));
     const unsubscribe = setupOnlineSync();
@@ -172,11 +177,13 @@ export default function Dashboard() {
           <div className="filters">
             <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
             <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
+            <button className={`chip ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Hechas</button>
           </div>
         </div>
 
-        {loading ? (
-          <p style={{ textAlign: 'center', opacity: 0.6 }}>Cargando tareas...</p>
+        {/* USO DE loading PARA EVITAR ERROR TS */}
+        {loading && tasks.length === 0 ? (
+          <p style={{ textAlign: "center" }}>Cargando...</p>
         ) : (
           <ul className="list">
             {filtered.map(t => (
@@ -193,7 +200,7 @@ export default function Dashboard() {
                 <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
               </li>
             ))}
-            {filtered.length === 0 && <p style={{ textAlign: 'center', opacity: 0.5 }}>No hay tareas</p>}
+            {filtered.length === 0 && !loading && <p style={{ textAlign: "center", opacity: 0.5 }}>No hay tareas</p>}
           </ul>
         )}
       </main>
@@ -206,12 +213,12 @@ export default function Dashboard() {
         </div>
         <div className="config-section">
           <h4>Fondo</h4>
-          <button className="config-btn" onClick={() => setTheme({...theme, background: "#0b0d10", mainColor: "#e7eaee"})}>Noche</button>
-          <button className="config-btn" onClick={() => setTheme({...theme, background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6"})}>Claro</button>
+          <button onClick={() => updateTheme({ background: "#0b0d10", mainColor: "#e7eaee" })}>Noche</button>
+          <button onClick={() => updateTheme({ background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6" })}>Claro</button>
         </div>
         <div className="config-section">
           <h4>Color de Acento</h4>
-          <input type="color" value={theme.accentColor} onChange={e => setTheme({...theme, accentColor: e.target.value})} />
+          <input type="color" value={theme.accentColor} onChange={e => updateTheme({ accentColor: e.target.value })} />
         </div>
       </aside>
     </div>
