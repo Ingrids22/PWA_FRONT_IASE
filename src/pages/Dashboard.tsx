@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, setAuth } from "../api";
-import {
-  cacheTasks,
-  getAllTasksLocal,
-  putTaskLocal,
-  removeTaskLocal,
-  queue,
-  type OutboxOp,
-} from "../offline/db";
+// Importaciones separadas correctamente para evitar errores de "no exported member"
+import { cacheTasks, getAllTasksLocal, putTaskLocal, removeTaskLocal, queue } from "../offline/db";
 import { syncNow, setupOnlineSync } from "../offline/sync";
 
 type Status = "Pendiente" | "En Progreso" | "Completada";
@@ -39,19 +33,15 @@ function normalizeTask(x: any): Task {
 }
 
 export default function Dashboard() {
-  // --- ESTADOS DE TAREAS ---
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
   const [online, setOnline] = useState<boolean>(navigator.onLine);
 
-  // --- ESTADOS DE PERSONALIZACIÓN ---
+  // --- LÓGICA DE TEMAS (Aislada para no romper nada) ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("user-theme");
@@ -64,7 +54,6 @@ export default function Dashboard() {
     };
   });
 
-  // --- MOTOR DE TEMA (APLICAR CAMBIOS) ---
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--main-bg", theme.background);
@@ -75,11 +64,7 @@ export default function Dashboard() {
     localStorage.setItem("user-theme", JSON.stringify(theme));
   }, [theme]);
 
-  const updateTheme = (updates: Partial<typeof theme>) => {
-    setTheme((prev) => ({ ...prev, ...updates }));
-  };
-
-  // --- LÓGICA DE SINCRONIZACIÓN Y CARGA ---
+  // --- EFECTOS INICIALES ---
   useEffect(() => {
     setAuth(localStorage.getItem("token"));
     const unsubscribe = setupOnlineSync();
@@ -93,10 +78,13 @@ export default function Dashboard() {
       if (local?.length) setTasks(local.map(normalizeTask));
       await loadFromServer();
       await syncNow();
-      await loadFromServer();
     })();
 
-    return () => { unsubscribe?.(); window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+    return () => { 
+      unsubscribe?.(); 
+      window.removeEventListener("online", on); 
+      window.removeEventListener("offline", off); 
+    };
   }, []);
 
   async function loadFromServer() {
@@ -113,10 +101,11 @@ export default function Dashboard() {
     e.preventDefault();
     if (!title.trim()) return;
     const clienteId = crypto.randomUUID();
-    const localTask = normalizeTask({ _id: clienteId, title, description, status: "Pendiente", pending: !navigator.onLine });
+    const localTask = normalizeTask({ _id: clienteId, title, description, status: "Pendiente" });
     setTasks(prev => [localTask, ...prev]);
     await putTaskLocal(localTask);
     setTitle(""); setDescription("");
+    
     if (!navigator.onLine) {
       await queue({ id: "op-" + clienteId, op: "create", clienteId, data: localTask, ts: Date.now() });
       return;
@@ -148,7 +137,6 @@ export default function Dashboard() {
     await removeTaskLocal(taskId);
     if (!navigator.onLine) {
       await queue({ id: "del-" + taskId, op: "delete", serverId: isLocalId(taskId) ? undefined : taskId, clienteId: isLocalId(taskId) ? taskId : undefined, ts: Date.now() });
-      return;
     }
     try { await api.delete(`/tasks/${taskId}`); } catch { }
   }
@@ -164,97 +152,88 @@ export default function Dashboard() {
     return list;
   }, [tasks, search, filter]);
 
-  const stats = useMemo(() => ({
-    total: tasks.length,
-    done: tasks.filter(t => t.status === "Completada").length
-  }), [tasks]);
-
   return (
     <div className="wrap">
       <header className="topbar">
         <h1>To-Do PWA</h1>
         <div className="spacer" />
-        <div className="stats">
-          <span>{stats.done}/{stats.total} completadas</span>
-          <div className="connection-status">
-            <span className="status-dot" style={{ backgroundColor: online ? "#22c55e" : "#ef4444" }} />
-            <small>{online ? "ONLINE" : "OFFLINE"}</small>
-          </div>
-          <button className="btn danger" onClick={() => { localStorage.removeItem("token"); window.location.href="/"; }}>Salir</button>
+        <div className="connection-status">
+          <span className="status-dot" style={{ backgroundColor: online ? "#22c55e" : "#ef4444" }} />
+          <small>{online ? "ONLINE" : "OFFLINE"}</small>
         </div>
+        <button className="btn danger" onClick={() => { localStorage.removeItem("token"); window.location.href="/"; }}>Salir</button>
       </header>
 
       <main>
         <form className="add-grid" onSubmit={addTask}>
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Qué hay que hacer?" />
           <button className="btn">Agregar</button>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción adicional..." rows={2} />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)..." rows={2} />
         </form>
 
         <div className="toolbar">
-          <input className="search" placeholder="Buscar tareas..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="search" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
           <div className="filters">
             <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
             <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
           </div>
         </div>
 
-        {loading ? <p style={{textAlign:'center'}}>Cargando...</p> : (
-          <ul className="list">
-            {filtered.map(t => (
-              <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
-                <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="En Progreso">En Progreso</option>
-                  <option value="Completada">Completada</option>
-                </select>
-                <div className="content">
-                  <span className="title">{t.title}</span>
-                  {t.description && <p className="desc">{t.description}</p>}
-                </div>
-                <div className="actions">
-                  <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
+<form className="add-grid" onSubmit={addTask}>
+    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="¿Qué hay que hacer?" />
+    <button className="btn">Agregar</button>
+    <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)..." rows={2} />
+  </form>
 
-      {/* COMPONENTE DE PERSONALIZACIÓN */}
-      <div className="config-container">
-        <button className="config-toggle" onClick={() => setIsSidebarOpen(true)}>🎨</button>
-        <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
-          <div className="sidebar-header">
-            <h3>Apariencia</h3>
-            <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>✕</button>
-          </div>
+  <div className="toolbar">
+    <input className="search" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
+    <div className="filters">
+      <button className={`chip ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Todas</button>
+      <button className={`chip ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Pendientes</button>
+    </div>
+  </div>
 
-          <div className="config-section">
-            <h4>Tipografía</h4>
-            <select value={theme.fontFamily} onChange={e => updateTheme({ fontFamily: e.target.value })} className="status-select">
-              <option value="Inter, sans-serif">Moderna</option>
-              <option value="'JetBrains Mono', monospace">Monoespacio</option>
-              <option value="serif">Elegante</option>
-            </select>
+  {/* AQUÍ USAMOS LA VARIABLE 'loading' PARA QUE VERCEL NO SE QUEJE */}
+  {loading ? (
+    <p style={{ textAlign: 'center', opacity: 0.6 }}>Cargando tareas...</p>
+  ) : (
+    <ul className="list">
+      {filtered.map(t => (
+        <li key={t._id} className={`item ${t.status === "Completada" ? "done" : ""}`}>
+          <select className="status-select" value={t.status} onChange={e => handleStatusChange(t, e.target.value as Status)}>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En Progreso">En Progreso</option>
+            <option value="Completada">Completada</option>
+          </select>
+          <div className="content">
+            <span className="title">{t.title}</span>
+            {t.description && <p className="desc">{t.description}</p>}
           </div>
+          <button className="icon danger" onClick={() => removeTask(t._id)}>🗑️</button>
+        </li>
+      ))}
+      {filtered.length === 0 && <p style={{ textAlign: 'center', opacity: 0.5 }}>No hay tareas</p>}
+    </ul>
+  )}
+</main>
 
-          <div className="config-section">
-            <h4>Fondo</h4>
-            <div className="options-grid">
-              <button onClick={() => updateTheme({ background: "#0b0d10", mainColor: "#e7eaee" })}>Noche</button>
-              <button onClick={() => updateTheme({ background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6" })}>Claro</button>
-              <button onClick={() => updateTheme({ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", mainColor: "#ffffff" })}>Púrpura</button>
-              <button onClick={() => updateTheme({ background: "#1a202c", mainColor: "#e2e8f0" })}>Gris</button>
-            </div>
-          </div>
-
-          <div className="config-section">
-            <h4>Color de Acento</h4>
-            <input type="color" value={theme.accentColor} onChange={e => updateTheme({ accentColor: e.target.value })} style={{width:'100%', height:'40px', border:'none', borderRadius:'8px'}} />
-          </div>
-        </aside>
-      </div>
+      {/* BARRA DE APARIENCIA */}
+      <button className="config-toggle" onClick={() => setIsSidebarOpen(true)}>🎨</button>
+      <aside className={`config-sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-header">
+          <h3>Apariencia</h3>
+          <button onClick={() => setIsSidebarOpen(false)}>✕</button>
+        </div>
+        <div className="config-section">
+          <h4>Fondo</h4>
+          <button onClick={() => setTheme({...theme, background: "#0b0d10", mainColor: "#e7eaee"})}>Noche</button>
+          <button onClick={() => setTheme({...theme, background: "#f8fafc", mainColor: "#1a202c", accentColor: "#3b82f6"})}>Claro</button>
+        </div>
+        <div className="config-section">
+          <h4>Color de Acento</h4>
+          <input type="color" value={theme.accentColor} onChange={e => setTheme({...theme, accentColor: e.target.value})} />
+        </div>
+      </aside>
     </div>
   );
 }
