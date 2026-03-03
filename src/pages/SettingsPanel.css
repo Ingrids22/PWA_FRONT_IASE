@@ -1,0 +1,336 @@
+/* ============================================================
+   SettingsPanel.css — estilos aislados, no modifican index.css
+   ============================================================ */
+
+/* --- Botón flotante de configuración --- */
+.settings-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border2, #2a2f36);
+  background: var(--bg2, #0e1217);
+  color: var(--text, #e7eaee);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.settings-toggle:hover {
+  transform: scale(1.08) rotate(30deg);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Overlay semitransparente --- */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  animation: sp-fade-in 0.2s ease;
+}
+
+@keyframes sp-fade-in {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+/* --- Panel lateral --- */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: 300px;
+  max-width: 90vw;
+  z-index: 1002;
+  background: var(--bg2, #0e1217);
+  border-left: 1px solid var(--border, #1b2027);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(110%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.settings-panel.open {
+  transform: translateX(0);
+}
+
+/* --- Header del panel --- */
+.sp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border, #1b2027);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #e7eaee);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.sp-close {
+  background: transparent;
+  border: none;
+  color: var(--text2, #9aa7b2);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sp-close:hover {
+  background: var(--bg3, #11151a);
+  color: var(--text, #e7eaee);
+}
+
+/* --- Cuerpo scrolleable --- */
+.sp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2, #2a2f36) transparent;
+}
+
+/* --- Sección individual --- */
+.sp-section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border, #1b2027);
+}
+
+.sp-section:last-child {
+  border-bottom: none;
+}
+
+.sp-label {
+  margin: 0 0 10px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text2, #9aa7b2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sp-value {
+  font-weight: 700;
+  color: var(--accent2, #4a81ff);
+  font-size: 12px;
+}
+
+/* --- Grid de temas --- */
+.sp-theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.sp-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg3, #11151a);
+  border: 1px solid var(--border2, #2a2f36);
+  border-radius: var(--radius, 12px);
+  color: var(--text, #e7eaee);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.sp-theme-btn:hover {
+  border-color: var(--accent, #1f6feb);
+}
+
+.sp-theme-btn.active {
+  border-color: var(--accent2, #4a81ff);
+  background: var(--bg, #0b0d10);
+}
+
+/* Puntos de color para temas */
+.sp-theme-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sp-theme-dot[data-theme="dark"]    { background: #4a81ff; }
+.sp-theme-dot[data-theme="ocean"]   { background: #0095ff; }
+.sp-theme-dot[data-theme="sepia"]   { background: #c87941; }
+.sp-theme-dot[data-theme="dracula"] { background: #bd93f9; }
+.sp-theme-dot[data-theme="light"]   { background: #dde3ea; border: 1px solid #c8d0da; }
+
+/* --- Row de chips --- */
+.sp-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sp-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  background: var(--bg3, #11151a);
+  border: 1px solid var(--border2, #2a2f36);
+  border-radius: var(--radius, 12px);
+  color: var(--text, #e7eaee);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.sp-chip:hover {
+  border-color: var(--accent, #1f6feb);
+}
+
+.sp-chip.active {
+  border-color: var(--accent2, #4a81ff);
+  background: var(--bg, #0b0d10);
+  color: var(--accent2, #4a81ff);
+  font-weight: 600;
+}
+
+/* --- Slider de fuente --- */
+.sp-slider {
+  width: 100%;
+  accent-color: var(--accent, #1f6feb);
+  cursor: pointer;
+  margin: 4px 0;
+}
+
+.sp-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text2, #9aa7b2);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* --- Grid de sonidos --- */
+.sp-sound-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.sp-sound-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  background: var(--bg3, #11151a);
+  border: 1px solid var(--border2, #2a2f36);
+  border-radius: var(--radius, 12px);
+  color: var(--text, #e7eaee);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.sp-sound-btn:hover {
+  border-color: var(--accent, #1f6feb);
+  transform: scale(1.03);
+}
+
+.sp-sound-btn.active {
+  border-color: var(--accent2, #4a81ff);
+  background: var(--bg, #0b0d10);
+  color: var(--accent2, #4a81ff);
+  font-weight: 600;
+}
+
+.sp-sound-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sp-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text2, #9aa7b2);
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* =====================================================
+   Variables CSS que aplican los temas al resto del app
+   (las pone useSettings.ts en :root automáticamente)
+   ===================================================== */
+
+/* Conectar variables del panel con los estilos existentes */
+body {
+  background: var(--bg, #0b0d10) !important;
+  color: var(--text, #e7eaee) !important;
+  font-size: var(--base-font-size, 15px) !important;
+}
+
+/* Tarjetas de tareas */
+.item {
+  background: var(--bg2, #0e1217) !important;
+  border-color: var(--border, #1b2027) !important;
+  padding: var(--item-padding, 10px 12px) !important;
+  border-radius: var(--radius, 12px) !important;
+}
+
+.list {
+  gap: var(--item-gap, 8px) !important;
+}
+
+/* Inputs y selects */
+.add input,
+.add-grid textarea,
+.search,
+.edit,
+.status-select {
+  background: var(--bg3, #11151a) !important;
+  border-color: var(--border2, #2a2f36) !important;
+  color: var(--text, #e7eaee) !important;
+  border-radius: var(--radius, 12px) !important;
+}
+
+/* Botones */
+.btn {
+  background: var(--accent, #1f6feb) !important;
+  border-radius: var(--radius, 12px) !important;
+}
+
+.btn.danger {
+  background: var(--danger, #d83a3a) !important;
+}
+
+/* Chips de filtros */
+.chip {
+  background: var(--bg2, #0e1217) !important;
+  border-color: var(--border2, #2a2f36) !important;
+  color: var(--text2, #9aa7b2) !important;
+  border-radius: 999px !important;
+}
+
+.chip.active {
+  border-color: var(--accent2, #4a81ff) !important;
+  color: var(--text, #e7eaee) !important;
+}
