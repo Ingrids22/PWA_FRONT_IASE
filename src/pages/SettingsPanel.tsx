@@ -30,7 +30,7 @@ const RADII: { id: BorderRadius; label: string }[] = [
 
 const SOUNDS: { id: Sound; label: string; emoji: string }[] = [
   { id: "none",  label: "Silencio", emoji: "🔇" },
-  { id: "pop",   label: "Pop",      emoji: "🫧" },
+  { id: "pop",   label: "Pop",      emoji: "🎈" },
   { id: "bell",  label: "Campana",  emoji: "🔔" },
   { id: "chime", label: "Chime",    emoji: "🎵" },
 ];

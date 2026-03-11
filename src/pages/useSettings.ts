@@ -24,7 +24,7 @@ const DEFAULTS: Settings = {
   fontFamily: "inter",
 };
 
-// ─── Clave única por usuario ───────────────────────────────────────────────
+// Clave única por usuario 
 // Intenta leer el token JWT del localStorage y extrae el campo 'id' o 'sub'.
 // Si no puede, usa "guest" como fallback para no romper nada.
 function getUserStorageKey(): string {
@@ -37,7 +37,6 @@ function getUserStorageKey(): string {
     const payload = token.split(".")[1];
     const decoded = JSON.parse(atob(payload));
 
-    // Dependiendo de tu backend, el id puede estar en 'id', 'sub', '_id o 'userId'
     const userId = decoded?.id ?? decoded?.sub ?? decoded?._id ?? decoded?.userId ?? "guest";
     return `app-settings-${userId}`;
   } catch {
@@ -45,7 +44,7 @@ function getUserStorageKey(): string {
   }
 }
 
-// ─── Temas ─────────────────────────────────────────────────────────────────
+// Temas 
 const THEMES: Record<Theme, Record<string, string>> = {
   dark: {
     "--bg": "#0b0d10",
@@ -166,7 +165,7 @@ export const FONT_FAMILIES: Record<FontFamily, { label: string; stack: string; g
   },
 };
 
-// ─── Google Fonts dinámico ─────────────────────────────────────────────────
+// ─── Google Fonts dinámico 
 const loadedFonts = new Set<string>();
 function loadGoogleFont(fontId: FontFamily) {
   const font = FONT_FAMILIES[fontId];
@@ -188,7 +187,7 @@ function applySettings(s: Settings) {
   root.style.setProperty("--font-family", FONT_FAMILIES[s.fontFamily].stack);
 }
 
-// ─── Sonidos ───────────────────────────────────────────────────────────────
+// ─── Sonidos 
 export function playCompletionSound(sound: Sound) {
   if (sound === "none") return;
   try {
@@ -231,7 +230,7 @@ export function playCompletionSound(sound: Sound) {
   } catch {}
 }
 
-// ─── El hook ───────────────────────────────────────────────────────────────
+// ─── El hook 
 export function useSettings() {
   const [settings, setSettingsState] = useState<Settings>(() => {
     try {
