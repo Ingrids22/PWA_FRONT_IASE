@@ -24,6 +24,28 @@ const DEFAULTS: Settings = {
   fontFamily: "inter",
 };
 
+// ─── Clave única por usuario ───────────────────────────────────────────────
+// Intenta leer el token JWT del localStorage y extrae el campo 'id' o 'sub'.
+// Si no puede, usa "guest" como fallback para no romper nada.
+function getUserStorageKey(): string {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "app-settings-guest";
+
+    // Los JWT tienen 3 partes separadas por ".": header.payload.signature
+    // El payload es base64, lo decodificamos para leer el id del usuario
+    const payload = token.split(".")[1];
+    const decoded = JSON.parse(atob(payload));
+
+    // Dependiendo de tu backend, el id puede estar en 'id', 'sub', '_id o 'userId'
+    const userId = decoded?.id ?? decoded?.sub ?? decoded?._id ?? decoded?.userId ?? "guest";
+    return `app-settings-${userId}`;
+  } catch {
+    return "app-settings-guest";
+  }
+}
+
+// ─── Temas ─────────────────────────────────────────────────────────────────
 const THEMES: Record<Theme, Record<string, string>> = {
   dark: {
     "--bg": "#0b0d10",
@@ -144,7 +166,7 @@ export const FONT_FAMILIES: Record<FontFamily, { label: string; stack: string; g
   },
 };
 
-// Carga dinámica de Google Fonts
+// ─── Google Fonts dinámico ─────────────────────────────────────────────────
 const loadedFonts = new Set<string>();
 function loadGoogleFont(fontId: FontFamily) {
   const font = FONT_FAMILIES[fontId];
@@ -162,13 +184,11 @@ function applySettings(s: Settings) {
   Object.entries(DENSITIES[s.density]).forEach(([k, v]) => root.style.setProperty(k, v));
   root.style.setProperty("--radius", RADII[s.borderRadius]);
   root.style.setProperty("--base-font-size", `${s.fontSize}px`);
-
-  // Fuente
   loadGoogleFont(s.fontFamily);
   root.style.setProperty("--font-family", FONT_FAMILIES[s.fontFamily].stack);
 }
 
-// Simple audio synthesis for sounds
+// ─── Sonidos ───────────────────────────────────────────────────────────────
 export function playCompletionSound(sound: Sound) {
   if (sound === "none") return;
   try {
@@ -211,10 +231,12 @@ export function playCompletionSound(sound: Sound) {
   } catch {}
 }
 
+// ─── El hook ───────────────────────────────────────────────────────────────
 export function useSettings() {
   const [settings, setSettingsState] = useState<Settings>(() => {
     try {
-      const saved = localStorage.getItem("app-settings");
+      const key = getUserStorageKey();
+      const saved = localStorage.getItem(key);
       return saved ? { ...DEFAULTS, ...JSON.parse(saved) } : DEFAULTS;
     } catch {
       return DEFAULTS;
@@ -223,7 +245,8 @@ export function useSettings() {
 
   useEffect(() => {
     applySettings(settings);
-    localStorage.setItem("app-settings", JSON.stringify(settings));
+    const key = getUserStorageKey();
+    localStorage.setItem(key, JSON.stringify(settings));
   }, [settings]);
 
   function updateSettings(patch: Partial<Settings>) {
